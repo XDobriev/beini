@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Проверка связи с кассой — Бейни</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@600&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="container" style="max-width:640px;padding-top:48px;padding-bottom:48px">
+    <h1 class="h2" style="font-size:42px;margin-bottom:12px">Проверка связи с кассой</h1>
+    <p class="lead" style="margin-bottom:24px">Служебная страница. Тестовый заказ на 0 ₽ уходит на кассу iikoFront: на терминале появится карточка «ТЕСТ САЙТА» во вкладке «Доставка». Потом заказ нужно отменить на кассе (причина: тестирование).</p>
+
+    <div class="fields" style="margin-bottom:16px">
+      <input class="input" id="token" type="password" placeholder="Токен теста (если задан на сервере)" autocomplete="off">
+    </div>
+    <div style="display:grid;gap:10px;grid-template-columns:1fr 1fr">
+      <button type="button" class="btn btn-line" id="btn-health">Проверить сервер</button>
+      <button type="button" class="btn btn-ink" id="btn-test">Отправить тестовый заказ</button>
+    </div>
+    <pre id="out" style="margin-top:24px;padding:16px;background:var(--bg-alt);border-radius:6px;font-size:13px;white-space:pre-wrap;word-break:break-word;min-height:80px">Результат появится здесь.</pre>
+  </main>
+  <script>
+    const out = document.getElementById('out');
+    const show = (title, data) => { out.textContent = title + '\n\n' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2)); };
+    document.getElementById('btn-health').onclick = async () => {
+      try { show('Сервер отвечает', await (await fetch('/api/health')).json()); }
+      catch (e) { show('Сервер недоступен', String(e)); }
+    };
+    document.getElementById('btn-test').onclick = async (ev) => {
+      if (!confirm('Отправить тестовый заказ на 0 ₽ на кассу ресторана?')) return;
+      const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Отправляем…';
+      try {
+        const headers = {}; const t = document.getElementById('token').value.trim();
+        if (t) headers['X-Test-Token'] = t;
+        const res = await fetch('/api/test-order', { method: 'POST', headers });
+        const data = await res.json();
+        show(res.ok && data.success ? 'Касса приняла заказ' : 'Касса не приняла заказ (HTTP ' + res.status + ')', data);
+      } catch (e) { show('Ошибка связи с сервером', String(e)); }
+      finally { btn.disabled = false; btn.textContent = 'Отправить тестовый заказ'; }
+    };
+  </script>
+</body>
+</html>
