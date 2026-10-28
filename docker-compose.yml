@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  beini-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beini_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - TZ=Europe/Moscow
+

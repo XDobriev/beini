@@ -8,20 +8,35 @@
 - **Корзина доставки и самовывоза:** быстрый расчет суммы, выбор способа получения и адреса.
 - **Оформление заказа:** автоматическое формирование форматированного чека и отправка в WhatsApp администратора.
 - **Бронирование столов и кабинок:** интерактивная форма резерва с выбором приватных закрытых кабинок или общего зала.
-- **Готовность к iiko:** номенклатура и идентификаторы блюд согласованы со структурой iikoCloud / iikoTransport API.
+- **Связка с iikoCloud:** интеграция через Public API v2 с передачей заказов на терминал iikoFront (`sync_iiko.py`, `iiko_config.json`).
+- **Тестирование кассы:** готовый сценарий для проверки в ресторане (`test_order.py`, см. `TESTING_IIKO_FRIDAY.md`).
 
 ## Стек
 
-- HTML5, Tailwind CSS
-- Чистый JavaScript (ES6+)
-- Шрифты: Playfair Display, Manrope
-- Адаптивная верстка (Mobile First)
+- **Бэкенд:** Golang 1.22+ (`net/http`, `log/slog`, `sync.RWMutex`, Graceful Shutdown)
+- **Фронтенд:** HTML5, Tailwind CSS, Vanilla JS (ES6+)
+- **Интеграция:** iikoCloud Public API v2 (JWT Auth, Deliveries API)
+- **Контейнеризация:** Docker, Docker Compose (Multi-stage билд ~20 МБ)
+- **Шрифты:** Playfair Display, Manrope
+- **Адаптивная верстка:** Mobile First
 
-## Запуск
+## Запуск проекта
 
-Открыть `index.html` в браузере или запустить локальный сервер:
-
+1. **Запуск полноценного Go-сервера (фронтенд + API):**
 ```bash
-python -m http.server 8080
+go run ./cmd/server
 ```
+Сервер стартует на `http://localhost:8080`.
+
+2. **Быстрый консольный тест связи с терминалом кассы:**
+```bash
+go run ./cmd/test-order
+```
+
+3. **Сборка продакшен бинарника:**
+```bash
+go build -o server.exe ./cmd/server
+```
+
+Подробные инструкции по тестированию описаны в файле `TESTING_IIKO_FRIDAY.md`, а системные инструкции для Claude Code — в `CLAUDE.md`.
 
