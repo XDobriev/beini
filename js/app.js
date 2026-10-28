@@ -238,31 +238,35 @@ function renderCartDrawer(totalPrice, totalCount) {
     <div class="flex items-center gap-3.5 p-3.5 bg-stone-50/90 rounded-2xl border border-stone-200/80 hover:border-[#c5a059]/40 transition-colors">
       <img src="${item.image}" alt="${item.name}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-stone-200/60">
       <div class="flex-1 min-w-0">
-        <h4 class="font-bold text-stone-900 text-sm truncate">${item.name}</h4>
-        <div class="text-[11px] text-stone-500 mb-1 flex items-center gap-1.5">
-          <span>${item.weight}</span>
-          <span>•</span>
-          <span class="font-mono text-stone-500 bg-stone-200/60 px-1 rounded">${item.iikoId}</span>
+        <h4 class="font-bold text-stone-900 text-sm leading-snug line-clamp-2">${item.name}</h4>
+        <div class="text-[11px] text-stone-500 mb-1 flex items-center gap-1.5 mt-0.5">
+          <span class="font-medium">${item.weight || '1 порция'}</span>
+          <span class="text-stone-300">•</span>
+          <span class="text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-emerald-200/60">100% Халяль</span>
         </div>
         <div class="text-sm font-bold text-[#023112] font-tabular">${(item.price * item.count).toLocaleString('ru-RU')} ₽</div>
       </div>
-      <div class="flex items-center gap-1 bg-white border border-stone-200 rounded-xl p-1 shadow-sm">
+      <div class="flex items-center gap-1 bg-white border border-stone-200 rounded-xl p-1 shadow-sm flex-shrink-0">
         <button 
           type="button"
           onclick="updateItemCount('${item.id}', -1)" 
-          class="cart-qty-btn text-stone-600 hover:text-red-700"
+          class="cart-qty-btn text-stone-600 hover:text-red-700 flex items-center justify-center"
           aria-label="Уменьшить количество"
         >
-          ${item.count === 1 ? '🗑' : '−'}
+          ${item.count === 1 ? `
+            <svg class="w-3.5 h-3.5 text-stone-400 hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          ` : '<span class="font-bold text-sm">−</span>'}
         </button>
         <span class="w-7 text-center text-xs font-bold text-stone-900 font-tabular">${item.count}</span>
         <button 
           type="button"
           onclick="updateItemCount('${item.id}', 1)" 
-          class="cart-qty-btn text-stone-800 hover:text-[#023112]"
+          class="cart-qty-btn text-stone-800 hover:text-[#023112] flex items-center justify-center"
           aria-label="Увеличить количество"
         >
-          +
+          <span class="font-bold text-sm">+</span>
         </button>
       </div>
     </div>
@@ -322,7 +326,7 @@ function sendOrderToWhatsApp() {
 
   cart.forEach((item, index) => {
     message += `${index + 1}. *${item.name}*\n`;
-    message += `   ${item.count} шт. × ${item.price} ₽ = *${item.count * item.price} ₽* [${item.iikoId}]\n`;
+    message += `   ${item.count} шт. × ${item.price} ₽ = *${(item.count * item.price).toLocaleString('ru-RU')} ₽*\n`;
   });
 
   message += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -343,6 +347,12 @@ function initBookingDefaults() {
     const today = new Date().toISOString().split('T')[0];
     dateInput.min = today;
     if (!dateInput.value) dateInput.value = today;
+  }
+
+  // Set default time to 19:00 if empty and highlight chip
+  const timeInput = document.getElementById('book-time');
+  if (timeInput && !timeInput.value) {
+    timeInput.value = '19:00';
   }
 }
 
@@ -476,6 +486,147 @@ function showToast(text) {
     toast.classList.remove('opacity-100', 'translate-y-0');
     toast.classList.add('opacity-0', 'translate-y-2');
   }, 2300);
+}
+
+// ==========================================================================
+// IIKO CLOUD API & LIVE TERMINAL INTEGRATION (GOLANG BACKEND)
+// ==========================================================================
+
+async function sendOrderToIiko() {
+  if (cart.length === 0) {
+    showToast('Ваша корзина пуста');
+    return;
+  }
+
+  const nameInput = document.getElementById('order-name');
+  const phoneInput = document.getElementById('order-phone');
+  const addressInput = document.getElementById('order-address');
+  const typeDelivery = document.querySelector('input[name="order-type"]:checked')?.value || 'доставка';
+
+  const name = nameInput ? nameInput.value.trim() : 'Гость Ресторана';
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+  const address = addressInput ? addressInput.value.trim() : '';
+
+  if (!phone) {
+    alert('Пожалуйста, укажите ваш контактный номер телефона для связи');
+    if (phoneInput) phoneInput.focus();
+    return;
+  }
+
+  if (typeDelivery === 'доставка' && !address) {
+    alert('Пожалуйста, укажите адрес доставки');
+    if (addressInput) addressInput.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-iiko');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('opacity-75', 'cursor-wait');
+    btn.innerHTML = `<span>⏳ Передача заказа в кассу...</span>`;
+  }
+
+  const orderPayload = {
+    customerName: name,
+    phone: phone,
+    deliveryType: typeDelivery === 'доставка' ? 'delivery' : 'pickup',
+    address: address,
+    comment: 'Онлайн-заказ с официального сайта ресторана BEINI',
+    items: cart.map(item => ({
+      productId: item.iikoId || '04583ff0-44e7-4c5d-8476-fd549af5457f',
+      name: item.name,
+      price: item.price,
+      amount: item.count
+    }))
+  };
+
+  try {
+    const response = await fetch('/api/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(orderPayload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Ошибка при передаче заказа в кассу');
+    }
+
+    // Успешная отправка
+    toggleCartDrawer(false);
+    cart = [];
+    updateCartUI();
+
+    alert(
+      `✓ ЗАКАЗ УСПЕШНО ПЕРЕДАН НА КАССУ РЕСТОРАНА!\n\n` +
+      `Гость: ${name}\n` +
+      `Телефон: ${phone}\n` +
+      `Статус кассы: ${data.creationStatus || 'Обрабатывается'}\n` +
+      `ID очереди (iiko): ${data.correlationId}\n\n` +
+      `Сервисный чек напечатан на кухне. Скоро с вами свяжется администратор!`
+    );
+
+    showToast('Заказ принят кассой ресторана!');
+  } catch (err) {
+    console.error('Ошибка iiko API:', err);
+    alert(
+      `Внимание при отправке заказа на кассу:\n${err.message}\n\n` +
+      `Вы можете нажать кнопку ниже и отправить заказ в WhatsApp администратора.`
+    );
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('opacity-75', 'cursor-wait');
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+
+async function runLiveTestOrder() {
+  const confirmed = confirm(
+    'Запустить тестовый заказ на 0 ₽ прямо на кассовый терминал BEINI в ресторане?\n\n' +
+    'На кассе Амины прозвучит сигнал и появится карточка «ТЕСТ САЙТА» во вкладке «Доставка».'
+  );
+  if (!confirmed) return;
+
+  showToast('Отправка тестового сигнала в кассу...');
+  
+  try {
+    const response = await fetch('/api/test-order', { method: 'POST' });
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Ошибка отправки тестового заказа');
+    }
+
+    if (data.creationStatus === 'Success' || data.creationStatus === 'InProgress') {
+      alert(
+        '✓ УСПЕШНО!\n\n' +
+        'Тестовый заказ передан на кассу iikoFront!\n' +
+        'Проверьте терминал: звуковой колокольчик и карточка во вкладке "Доставка".'
+      );
+    } else if (data.orderInfo && data.orderInfo.errorInfo) {
+      const err = data.orderInfo.errorInfo;
+      if (err.code === 'TerminalGroupDisabled') {
+        alert(
+          'Касса ответила: TerminalGroupDisabled.\n\n' +
+          'Кассовый терминал в ресторане сейчас выключен или не открыта кассовая смена.\n' +
+          'В пятницу во время рабочей смены при включенном iikoFront этот запрос сразу пройдет со статусом Success!'
+        );
+      } else {
+        alert(`Ответ iiko: ${err.code}\n${err.message || ''}`);
+      }
+    } else {
+      alert(`Запрос обработан! Correlation ID: ${data.correlationId}`);
+    }
+  } catch (err) {
+    console.error('Ошибка тестового заказа:', err);
+    alert(`Ошибка связи с сервером: ${err.message}\nУбедитесь, что запущен бэкенд на Go (go run ./cmd/server).`);
+  }
 }
 
 function initEventListeners() {

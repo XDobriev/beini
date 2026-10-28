@@ -45,8 +45,8 @@
   <header class="sticky top-0 z-40 glass-nav text-white transition-all duration-300">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       
-      <!-- Logo & Brand -->
-      <a href="#" class="flex items-center gap-3.5 group touch-target" aria-label="Ресторан BEINI Главная">
+      <!-- Logo & Brand (No-shrink) -->
+      <a href="#" class="flex items-center gap-3.5 group touch-target flex-shrink-0" aria-label="Ресторан BEINI Главная">
         <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-[#c5a059] shadow-md flex-shrink-0 group-hover:scale-105 transition-transform">
           <img src="assets/images/instagram/logo_avatar_00.jpg" alt="Логотип ресторана BEINI" class="w-full h-full object-cover">
         </div>
@@ -59,29 +59,29 @@
         </div>
       </a>
 
-      <!-- Desktop Nav -->
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-emerald-100/90">
+      <!-- Desktop Nav (Visible on lg+ to prevent tablet clipping) -->
+      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium text-emerald-100/90 flex-shrink-0">
         <a href="#menu-section" class="hover:text-[#e6c587] transition-colors py-2">Меню & Доставка</a>
         <a href="#about-section" class="hover:text-[#e6c587] transition-colors py-2">VIP-Кабинки & Детская</a>
         <a href="#promo-section" class="hover:text-[#e6c587] transition-colors py-2">Акции & Банкеты</a>
         <a href="#contacts-section" class="hover:text-[#e6c587] transition-colors py-2">Контакты</a>
       </nav>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-2.5 sm:gap-3">
-        <!-- Call Button -->
-        <a href="tel:+79204827777" class="hidden sm:inline-flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/15 min-h-[44px]">
+      <!-- Action Buttons (Responsive flex-shrink-0) -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <!-- Call Button (Icon on mobile/tablet, full phone on xl+) -->
+        <a href="tel:+79204827777" class="inline-flex items-center gap-2 text-xs font-semibold px-3 sm:px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/15 min-h-[44px]" aria-label="Позвонить в ресторан BEINI">
           <svg class="w-4 h-4 text-[#e6c587]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
           </svg>
-          <span>+7 (920) 482-77-77</span>
+          <span class="hidden xl:inline">+7 (920) 482-77-77</span>
         </a>
 
         <!-- Booking Button -->
         <button 
           type="button"
           onclick="toggleBookingModal(true)" 
-          class="hidden lg:inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#e6c587] to-[#c5a059] hover:from-[#ecd19b] hover:to-[#cca75e] text-stone-950 shadow-md transition-all active:scale-95 min-h-[44px]"
+          class="hidden sm:inline-flex items-center gap-2 text-xs font-bold px-3.5 sm:px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#e6c587] to-[#c5a059] hover:from-[#ecd19b] hover:to-[#cca75e] text-stone-950 shadow-md transition-all active:scale-95 min-h-[44px]"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -107,90 +107,144 @@
   </header>
 
   <!-- ================= HERO SECTION ================= -->
-  <section class="relative bg-beini-hero text-white overflow-hidden py-20 sm:py-28 lg:py-36 border-b border-[#023112]">
+  <section class="relative bg-beini-hero text-white overflow-hidden py-16 sm:py-24 lg:py-28 border-b border-[#023112]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <div class="max-w-3xl">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
         
-        <!-- Regional Heritage Badge -->
-        <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-[#c5a059]/40 text-xs text-[#e6c587] font-semibold mb-6 shadow-sm">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Назрань • ул. С. С. Осканова, 21 • 11:00 — 23:00</span>
+        <!-- Left Column: Copy & CTAs (7 cols) -->
+        <div class="lg:col-span-7">
+          <!-- Regional Heritage Badge -->
+          <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-[#c5a059]/40 text-xs text-[#e6c587] font-semibold mb-6 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Назрань • ул. С. С. Осканова, 21 • 11:00 — 23:00</span>
+          </div>
+
+          <h1 class="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold leading-[1.12] mb-6">
+            Там, где традиции встречаются <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#f5dfb8] via-[#e6c587] to-[#c5a059] italic font-normal">
+              с высоким вкусом
+            </span>
+          </h1>
+
+          <p class="text-sm sm:text-lg text-stone-200 leading-relaxed font-light mb-8 max-w-xl">
+            Ресторан интернациональной и авторской кухни BEINI. Отборное мясо на углях, приватные кабинки для семейных ужинов, безопасная детская комната и бережная доставка по Назрани.
+          </p>
+
+          <!-- CTA Buttons (Mobile Thumb Zone Ergonomics) -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-10">
+            <a href="#menu-section" class="flex items-center justify-center gap-2.5 min-h-[48px] px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#e6c587] via-[#c5a059] to-[#b38d45] hover:brightness-105 text-stone-950 font-bold text-sm tracking-wide shadow-xl transition-all transform active:scale-98">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+              </svg>
+              <span>Открыть меню доставки</span>
+            </a>
+
+            <button 
+              type="button"
+              onclick="toggleBookingModal(true)" 
+              class="flex items-center justify-center gap-2.5 min-h-[48px] px-8 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm backdrop-blur-md border border-white/25 transition-all active:scale-98"
+            >
+              <svg class="w-5 h-5 text-[#e6c587]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span>Забронировать кабинку</span>
+            </button>
+          </div>
+
+          <!-- Trust Badges (Refined Glass Cards with SVG Icons) -->
+          <div class="pt-6 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs font-medium">
+            <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+              <svg class="w-4 h-4 text-[#e6c587] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+              </svg>
+              <div>
+                <span class="font-bold text-white block">100% Халяль</span>
+                <span class="text-[11px] text-emerald-200/80">Сертификат</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+              <svg class="w-4 h-4 text-[#e6c587] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+              </svg>
+              <div>
+                <span class="font-bold text-white block">VIP-Кабинки</span>
+                <span class="text-[11px] text-emerald-200/80">Без депозита</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+              <svg class="w-4 h-4 text-[#e6c587] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div>
+                <span class="font-bold text-white block">Детская зона</span>
+                <span class="text-[11px] text-emerald-200/80">Игровая комната</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+              <svg class="w-4 h-4 text-[#e6c587] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              <div>
+                <span class="font-bold text-white block">Доставка 45 мин</span>
+                <span class="text-[11px] text-emerald-200/80">Термобоксы</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <h1 class="font-serif text-4xl sm:text-6xl lg:text-7xl font-bold leading-[1.12] mb-6">
-          Там, где традиции встречаются <br>
-          <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#f5dfb8] via-[#e6c587] to-[#c5a059] italic font-normal">
-            с высоким вкусом
-          </span>
-        </h1>
-
-        <p class="text-base sm:text-xl text-stone-100 leading-relaxed font-light mb-10 max-w-2xl">
-          Ресторан интернациональной и авторской кухни BEINI. Отборное мясо на углях, приватные кабинки для семейных ужинов, безопасная детская комната и бережная доставка по Назрани.
-        </p>
-
-        <!-- CTA Buttons (Mobile Thumb Zone Ergonomics) -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 sm:gap-4">
-          <a href="#menu-section" class="flex items-center justify-center gap-2.5 min-h-[48px] px-8 py-4 rounded-xl bg-gradient-to-r from-[#e6c587] via-[#c5a059] to-[#b38d45] hover:brightness-105 text-stone-950 font-bold text-sm tracking-wide shadow-xl transition-all transform active:scale-98">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-            </svg>
-            <span>Открыть меню доставки</span>
-          </a>
-
-          <button 
-            type="button"
-            onclick="toggleBookingModal(true)" 
-            class="flex items-center justify-center gap-2.5 min-h-[48px] px-8 py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm backdrop-blur-md border border-white/25 transition-all active:scale-98"
-          >
-            <svg class="w-5 h-5 text-[#e6c587]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
-            <span>Забронировать кабинку</span>
-          </button>
-        </div>
-
-        <!-- Trust Badges (Refined Glass Cards) -->
-        <div class="mt-12 pt-8 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs font-medium">
-          <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-            <span class="text-[#e6c587] font-bold text-base">✦</span>
-            <div>
-              <span class="font-bold text-white block">100% Халяль</span>
-              <span class="text-[11px] text-emerald-200/80">Сертифицированное мясо</span>
+        <!-- Right Column: Visual Gastronomy Showcase (5 cols, Desktop) -->
+        <div class="hidden lg:block lg:col-span-5 relative">
+          <div class="relative mx-auto max-w-sm">
+            <!-- Ambient Glow -->
+            <div class="absolute -inset-4 bg-gradient-to-r from-[#c5a059]/30 to-[#023112]/40 rounded-3xl blur-2xl"></div>
+            
+            <!-- Main Featured Card -->
+            <div class="relative rounded-3xl overflow-hidden border-2 border-[#c5a059]/40 shadow-2xl bg-[#01200b]">
+              <img src="assets/images/dishes/mangal_lyulya.jpg" alt="Фирменные блюда BEINI" class="w-full h-80 object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-transparent to-transparent"></div>
+              
+              <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#c5a059] text-stone-950">Хит мангала</span>
+                  <span class="font-serif text-lg font-bold text-[#e6c587]">590 ₽</span>
+                </div>
+                <h3 class="font-serif text-xl font-bold">Люля-кебаб из телятины</h3>
+                <p class="text-xs text-stone-300 mt-1 line-clamp-1">Рубленое мясо на березовых углях со свежей зеленью</p>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-            <span class="text-[#e6c587] font-bold text-base">🛋</span>
-            <div>
-              <span class="font-bold text-white block">VIP-Кабинки</span>
-              <span class="text-[11px] text-emerald-200/80">Без депозита</span>
+
+            <!-- Floating Social Proof Badge -->
+            <div class="absolute -bottom-5 -left-6 bg-white/95 backdrop-blur-md text-stone-900 p-3.5 rounded-2xl shadow-xl border border-stone-200 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center font-bold text-lg">
+                ★
+              </div>
+              <div>
+                <div class="flex items-center gap-1 text-xs font-bold text-stone-900">
+                  <span>Рейтинг 5.0</span>
+                  <span class="text-stone-400">•</span>
+                  <span class="text-emerald-700">Яндекс Карты</span>
+                </div>
+                <p class="text-[11px] text-stone-500 font-medium">Более 10 000 гостей в Назрани</p>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-            <span class="text-[#e6c587] font-bold text-base">🧸</span>
-            <div>
-              <span class="font-bold text-white block">Детская зона</span>
-              <span class="text-[11px] text-emerald-200/80">Игровая комната</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-            <span class="text-[#e6c587] font-bold text-base">⚡</span>
-            <div>
-              <span class="font-bold text-white block">Доставка 45 мин</span>
-              <span class="text-[11px] text-emerald-200/80">Горячие термобоксы</span>
-            </div>
+
           </div>
         </div>
 
       </div>
+
     </div>
   </section>
 
   <!-- ================= PROMO SECTION (ДЕНЬ РОЖДЕНИЯ & БАНКЕТЫ) ================= -->
-  <section id="promo-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
+  <section id="promo-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 relative z-20">
     <div class="bg-gradient-to-r from-[#023112] via-[#044018] to-[#01200b] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-[#c5a059]/40 flex flex-col md:flex-row items-center justify-between gap-6 oriental-pattern-subtle">
       <div class="flex items-center gap-5">
-        <div class="w-16 h-16 rounded-2xl bg-[#c5a059]/20 border border-[#c5a059]/40 flex items-center justify-center flex-shrink-0 text-3xl shadow-inner">
-          🎁
+        <div class="w-14 h-14 rounded-2xl bg-[#c5a059]/20 border border-[#c5a059]/40 flex items-center justify-center flex-shrink-0 text-[#e6c587] shadow-inner">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V4a2 2 0 114 0v4m-4 0a2 2 0 10-4 0v4m-5 7h18a2 2 0 002-2v-5H3v5a2 2 0 002 2z"></path>
+          </svg>
         </div>
         <div>
           <span class="text-[11px] uppercase tracking-widest text-[#e6c587] font-extrabold flex items-center gap-1.5">
@@ -237,80 +291,100 @@
         type="button"
         onclick="filterCategory('all')" 
         data-category="all" 
-        class="category-tab active touch-target"
+        class="category-tab shrink-0 active touch-target"
       >
+        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
         <span>Все блюда</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('grill')" 
         data-category="grill" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">🔥</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2c1.1 2.5 3 4.5 3 7a5 5 0 01-10 0c0-2.5 1.9-4.5 3-7 1.1 2.5 3 4 4 0zm0 7a3 3 0 00-3 3c0 1.66 1.34 3 3 3s3-1.34 3-3a3 3 0 00-3-3z"/>
+        </svg>
         <span>Мангал & Стейки</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('eastern')" 
         data-category="eastern" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">🥘</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V4a2 2 0 114 0v4m-4 0a2 2 0 10-4 0v4m-5 7h18a2 2 0 002-2v-5H3v5a2 2 0 002 2z"></path>
+        </svg>
         <span>Восточная & Национальная</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('soups')" 
         data-category="soups" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">🍲</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a7 7 0 01-14 0m14 0v1a3 3 0 01-3 3H8a3 3 0 01-3-3v-1m4-7v3m4-3v3m4-3v3"></path>
+        </svg>
         <span>Супы & Том-Ям</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('salads')" 
         data-category="salads" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">🥗</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+        </svg>
         <span>Салаты & Закуски</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('sushi')" 
         data-category="sushi" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">🍣</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" stroke-width="2"></circle>
+          <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
+        </svg>
         <span>Суши & Роллы</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('pizza')" 
         data-category="pizza" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">🍕</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l10 18H2L12 2zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-3 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm6 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"></path>
+        </svg>
         <span>Пицца & Выпечка</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('desserts')" 
         data-category="desserts" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">🍰</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.5a5 5 0 01-7 4.5 5 5 0 01-7-4.5V11h14v4.5zM12 4v4m-4-3v3m8-3v3"></path>
+        </svg>
         <span>Десерты</span>
       </button>
       <button 
         type="button"
         onclick="filterCategory('drinks')" 
         data-category="drinks" 
-        class="category-tab touch-target"
+        class="category-tab shrink-0 touch-target"
       >
-        <span class="tab-icon">☕</span>
+        <svg class="w-4 h-4 text-[#c5a059]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3m4-3v3m4-3v3"></path>
+        </svg>
         <span>Айс-кофе & Бар</span>
       </button>
     </div>
@@ -346,43 +420,49 @@
           <div class="space-y-4">
             
             <div class="vip-cabin-card flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-[#c5a059]/20 border border-[#c5a059]/40 text-[#e6c587] flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-inner">
-                🛋
+              <div class="w-12 h-12 rounded-xl bg-[#c5a059]/20 border border-[#c5a059]/40 text-[#e6c587] flex items-center justify-center flex-shrink-0 shadow-inner">
+                <svg class="w-6 h-6 text-[#e6c587]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
               </div>
               <div class="flex-1">
                 <div class="flex items-center justify-between gap-2">
                   <h4 class="font-bold text-base text-white">Приватные закрытые кабинки</h4>
-                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-[#c5a059]/20 text-[#e6c587] border border-[#c5a059]/40">VIP Lounge</span>
+                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-[#c5a059]/20 text-[#e6c587] border border-[#c5a059]/40 font-mono">VIP Lounge</span>
                 </div>
                 <p class="text-xs sm:text-sm text-stone-300 mt-1 leading-relaxed">
-                  Изолированные зоны с комфортными мягкими диванами для семейных ужинов, женских встреч и переговоров без лишних взглядов. До 10 гостей. Без обязательного депозита.
+                  Изолированные зоны с комфортными мягкими диванами для семейных ужинов, женских встреч и деловых переговоров без лишних взглядов. До 10 гостей. Без обязательного депозита.
                 </p>
               </div>
             </div>
 
             <div class="vip-cabin-card flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-inner">
-                🧸
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+                <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
               </div>
               <div class="flex-1">
                 <div class="flex items-center justify-between gap-2">
                   <h4 class="font-bold text-base text-white">Детская игровая комната</h4>
-                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-500/40">Бесплатно</span>
+                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 font-mono">Бесплатно</span>
                 </div>
                 <p class="text-xs sm:text-sm text-stone-300 mt-1 leading-relaxed">
-                  Безопасное пространство с игрушками и развлечениями на цокольном этаже. Родители спокойно наслаждаются ужином, пока дети заняты интересной игрой.
+                  Безопасное пространство с игрушками и развлечениями на цокольном этаже. Родители спокойно наслаждаются ужином, пока дети увлечены безопасной игрой.
                 </p>
               </div>
             </div>
 
             <div class="vip-cabin-card flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-inner">
-                🎂
+              <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center flex-shrink-0 shadow-inner">
+                <svg class="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                </svg>
               </div>
               <div class="flex-1">
                 <div class="flex items-center justify-between gap-2">
                   <h4 class="font-bold text-base text-white">Банкеты и мероприятия под ключ</h4>
-                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 border border-amber-500/40">Скидка 10%</span>
+                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-500/40 font-mono">Скидка 10%</span>
                 </div>
                 <p class="text-xs sm:text-sm text-stone-300 mt-1 leading-relaxed">
                   Организация дней рождения, семейных торжеств, ифтаров в Рамадан и корпоративов. Индивидуальное банкетное меню и праздничная ресторанная подача.
@@ -396,29 +476,44 @@
             <button 
               type="button"
               onclick="toggleBookingModal(true)" 
-              class="min-h-[48px] px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#e6c587] to-[#c5a059] hover:brightness-105 text-stone-950 font-bold text-sm transition-all shadow-md active:scale-95 touch-target"
+              class="min-h-[48px] px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#e6c587] to-[#c5a059] hover:brightness-105 text-stone-950 font-bold text-sm transition-all shadow-md active:scale-95 touch-target flex items-center gap-2"
             >
-              Забронировать столик или кабинку
+              <svg class="w-4 h-4 text-stone-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <span>Забронировать столик или кабинку</span>
             </button>
           </div>
         </div>
 
-        <!-- Real Instagram Reels & Dish Showcase -->
+        <!-- Real Authentic Interior & Dish Showcase -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-4">
-            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-56 sm:h-64 group">
-              <img src="assets/images/instagram/dish_meat_18.jpg" alt="Блюдо BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-56 sm:h-64 group relative">
+              <img src="assets/images/taplink/interior_01.jpg" alt="Основной зал ресторана BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-3">
+                <span class="text-[11px] text-[#e6c587] font-medium backdrop-blur-sm bg-black/40 px-2 py-0.5 rounded border border-[#c5a059]/30">Основной зал</span>
+              </div>
             </div>
-            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-40 sm:h-48 group">
-              <img src="assets/images/instagram/reel_19.jpg" alt="Напитки BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-40 sm:h-48 group relative">
+              <img src="assets/images/taplink/interior_03.jpg" alt="Приватные кабинки BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-3">
+                <span class="text-[11px] text-[#e6c587] font-medium backdrop-blur-sm bg-black/40 px-2 py-0.5 rounded border border-[#c5a059]/30">VIP-кабинки</span>
+              </div>
             </div>
           </div>
           <div class="space-y-4 pt-8">
-            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-40 sm:h-48 group">
-              <img src="assets/images/instagram/dish_salad_14.jpg" alt="Салат BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-40 sm:h-48 group relative">
+              <img src="assets/images/taplink/interior_02.jpg" alt="Атмосфера гостеприимства BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-3">
+                <span class="text-[11px] text-[#e6c587] font-medium backdrop-blur-sm bg-black/40 px-2 py-0.5 rounded border border-[#c5a059]/30">Лаунж-зона</span>
+              </div>
             </div>
-            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-56 sm:h-64 group">
-              <img src="assets/images/instagram/reel_10.jpg" alt="Интерьер BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="rounded-2xl overflow-hidden shadow-lg border border-white/10 h-56 sm:h-64 group relative">
+              <img src="assets/images/dishes/mangal_shashlik_lamb.jpg" alt="Блюда на углях BEINI" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-3">
+                <span class="text-[11px] text-[#e6c587] font-medium backdrop-blur-sm bg-black/40 px-2 py-0.5 rounded border border-[#c5a059]/30">Мангал на углях</span>
+              </div>
             </div>
           </div>
         </div>
@@ -478,11 +573,18 @@
         </div>
 
         <div class="mt-8 flex flex-wrap gap-3">
-          <a href="https://yandex.ru/maps/?text=Назрань+Осканова+21+ресторан+Бейни" target="_blank" rel="noopener noreferrer" class="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#023112] text-white font-medium text-xs flex items-center gap-2 hover:bg-[#064b1d] transition-colors touch-target">
-            <span>📍 Открыть в Яндекс Картах</span>
+          <a href="https://yandex.ru/maps/?text=Назрань+Осканова+21+ресторан+Бейни" target="_blank" rel="noopener noreferrer" class="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#023112] text-white font-medium text-xs flex items-center gap-2 hover:bg-[#064b1d] transition-colors touch-target shadow-sm">
+            <svg class="w-4 h-4 text-[#e6c587]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>Открыть в Яндекс Картах</span>
           </a>
-          <a href="https://instagram.com/beini.rest/" target="_blank" rel="noopener noreferrer" class="min-h-[44px] px-5 py-2.5 rounded-xl bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 hover:bg-stone-200 transition-colors touch-target">
-            <span>📷 Instagram @beini.rest</span>
+          <a href="https://instagram.com/beini.rest/" target="_blank" rel="noopener noreferrer" class="min-h-[44px] px-5 py-2.5 rounded-xl bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 hover:bg-stone-200 transition-colors touch-target border border-stone-200/80">
+            <svg class="w-4 h-4 text-[#E1306C]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+            <span>Instagram @beini.rest</span>
           </a>
         </div>
       </div>
@@ -491,13 +593,19 @@
       <div class="h-72 sm:h-80 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 relative shadow-inner flex items-center justify-center p-6 text-center">
         <div class="absolute inset-0 opacity-40 bg-[radial-gradient(#023112_1px,transparent_1px)] [background-size:16px_16px]"></div>
         <div class="relative z-10 bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-xl max-w-sm border border-stone-200">
-          <div class="w-12 h-12 rounded-full bg-[#023112] text-[#c5a059] flex items-center justify-center mx-auto mb-3 text-xl font-bold shadow">
-            📍
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#023112] to-[#044018] text-[#e6c587] flex items-center justify-center mx-auto mb-3 shadow-md border border-[#c5a059]/40">
+            <svg class="w-6 h-6 text-[#e6c587]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
           </div>
           <h4 class="font-serif font-bold text-lg text-stone-900">Ресторан BEINI</h4>
           <p class="text-xs text-stone-500 mt-1">Центр Назрани, ул. С. С. Осканова, 21</p>
-          <a href="https://yandex.ru/maps/?text=Назрань+Осканова+21" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block w-full py-2.5 bg-gradient-to-r from-[#e6c587] to-[#c5a059] hover:brightness-105 text-stone-950 text-xs font-bold rounded-xl transition-all shadow-sm">
-            Построить маршрут
+          <a href="https://yandex.ru/maps/?text=Назрань+Осканова+21" target="_blank" rel="noopener noreferrer" class="mt-4 inline-flex items-center justify-center gap-1.5 w-full py-2.5 bg-gradient-to-r from-[#e6c587] to-[#c5a059] hover:brightness-105 text-stone-950 text-xs font-bold rounded-xl transition-all shadow-sm">
+            <svg class="w-4 h-4 text-stone-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+            </svg>
+            <span>Построить маршрут</span>
           </a>
         </div>
       </div>
@@ -597,10 +705,14 @@
     <!-- Drawer Items List -->
     <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
       <!-- Empty State -->
-      <div id="cart-empty-state" class="text-center py-16">
-        <div class="text-4xl mb-3">🍽</div>
-        <h4 class="font-bold text-stone-800 text-base">Корзина пуста</h4>
-        <p class="text-xs text-stone-500 mt-1 max-w-[240px] mx-auto">Выберите понравившиеся блюда из нашего меню, чтобы оформить заказ</p>
+      <div id="cart-empty-state" class="text-center py-16 px-4">
+        <div class="w-16 h-16 rounded-2xl bg-[#023112]/5 border border-[#023112]/15 text-[#023112] flex items-center justify-center mx-auto mb-4 shadow-sm">
+          <svg class="w-8 h-8 text-[#023112]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+          </svg>
+        </div>
+        <h4 class="font-serif font-bold text-stone-900 text-lg">Корзина пуста</h4>
+        <p class="text-xs text-stone-500 mt-1 max-w-[240px] mx-auto leading-relaxed">Выберите понравившиеся блюда кавказской или европейской кухни, чтобы оформить заказ</p>
       </div>
 
       <!-- Items Container -->
@@ -611,14 +723,20 @@
     <div id="cart-drawer-footer" class="p-4 sm:p-5 border-t border-stone-200 bg-stone-50/95 space-y-3.5 pb-safe">
       
       <!-- Delivery Type Selector -->
-      <div class="grid grid-cols-2 gap-2 bg-stone-200/70 p-1 rounded-xl text-xs font-semibold">
-        <label class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-[#023112] has-[:checked]:shadow-sm">
+      <div class="grid grid-cols-2 gap-2 bg-stone-200/60 p-1.5 rounded-2xl text-xs font-semibold">
+        <label class="flex items-center justify-center gap-2 py-2.5 rounded-xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-[#023112] has-[:checked]:shadow-sm text-stone-600">
           <input type="radio" name="order-type" value="доставка" checked class="hidden">
-          <span>🛵 Доставка</span>
+          <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <span>Доставка</span>
         </label>
-        <label class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-[#023112] has-[:checked]:shadow-sm">
+        <label class="flex items-center justify-center gap-2 py-2.5 rounded-xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-[#023112] has-[:checked]:shadow-sm text-stone-600">
           <input type="radio" name="order-type" value="самовывоз" class="hidden">
-          <span>🏬 Самовывоз</span>
+          <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+          <span>Самовывоз</span>
         </label>
       </div>
 
@@ -632,20 +750,31 @@
       </div>
 
       <!-- Total & Submit -->
-      <div class="pt-2 border-t border-stone-200">
-        <div class="flex items-center justify-between mb-3">
+      <div class="pt-2 border-t border-stone-200 space-y-2">
+        <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-medium text-stone-600">Итого к оплате:</span>
           <span class="cart-total-price font-serif text-2xl font-bold text-[#023112] font-tabular">0 ₽</span>
         </div>
         <button 
           type="button"
-          onclick="sendOrderToWhatsApp()" 
-          class="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all touch-target"
+          id="btn-submit-iiko"
+          onclick="sendOrderToIiko()" 
+          class="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#023112] to-[#064b1d] hover:from-[#034419] hover:to-[#085a23] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md border border-[#e6c587]/30 active:scale-95 transition-all touch-target"
         >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-[#e6c587]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>Отправить заказ в кассу iiko</span>
+        </button>
+        <button 
+          type="button"
+          onclick="sendOrderToWhatsApp()" 
+          class="w-full min-h-[42px] py-2 px-4 rounded-xl bg-white hover:bg-stone-50 text-stone-700 font-semibold text-xs flex items-center justify-center gap-2 border border-stone-200 active:scale-95 transition-all touch-target"
+        >
+          <svg class="w-4 h-4 text-[#25D366]" fill="currentColor" viewBox="0 0 24 24">
             <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
           </svg>
-          <span>Отправить заказ в WhatsApp</span>
+          <span>Или продублировать в WhatsApp</span>
         </button>
       </div>
 
@@ -654,99 +783,100 @@
 
   <!-- ================= BOOKING MODAL (VIP CONCIERGE EXPERIENCE) ================= -->
   <div id="booking-modal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4">
-    <div class="modal-container bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-[#c5a059]/40 flex flex-col">
+    <div class="modal-container bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-hidden shadow-2xl border border-[#c5a059]/40 flex flex-col">
       
       <!-- Modal Header -->
-      <div class="bg-gradient-to-r from-[#023112] via-[#044018] to-[#01200b] text-white p-5 sm:p-6 relative oriental-pattern-subtle">
+      <div class="bg-gradient-to-r from-[#023112] via-[#044018] to-[#01200b] text-white p-3.5 sm:p-5 relative oriental-pattern-subtle flex-shrink-0">
         <button 
           type="button"
           onclick="toggleBookingModal(false)" 
-          class="touch-target absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-emerald-100 flex items-center justify-center transition-colors"
+          class="touch-target absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-emerald-100 flex items-center justify-center transition-colors"
           aria-label="Закрыть окно бронирования"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
-        <span class="text-[11px] uppercase tracking-[0.2em] text-[#e6c587] font-extrabold flex items-center gap-1.5">
+        <span class="text-[9px] uppercase tracking-[0.2em] text-[#e6c587] font-extrabold flex items-center gap-1.5">
           <span>✦</span> VIP Concierge • Бронирование
         </span>
-        <h3 class="font-serif text-2xl font-bold mt-1 text-white">Резерв стола или кабинки</h3>
-        <p class="text-xs text-stone-200 mt-1">Ресторан BEINI • Назрань, ул. С.С. Осканова, 21</p>
+        <h3 class="font-serif text-lg sm:text-2xl font-bold text-white">Резерв стола или VIP-кабинки</h3>
+        <p class="text-[11px] text-stone-200">Ресторан BEINI • г. Назрань, ул. С.С. Осканова, 21</p>
       </div>
 
-      <!-- Form -->
-      <form onsubmit="submitBooking(event)" class="p-5 sm:p-6 space-y-4 text-xs">
+      <!-- Form with smooth scroll on mobile -->
+      <form onsubmit="submitBooking(event)" class="overflow-y-auto p-3.5 sm:p-5 space-y-2.5 text-xs flex-1">
         
         <!-- Contact fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
             <label class="block font-bold text-stone-800 mb-1">Ваше имя</label>
-            <input id="book-name" required type="text" placeholder="Как к вам обращаться" class="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] focus:ring-1 focus:ring-[#023112] bg-stone-50/50">
+            <input id="book-name" required type="text" placeholder="Как к вам обращаться" class="w-full min-h-[42px] px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] focus:ring-1 focus:ring-[#023112] bg-stone-50/50">
           </div>
           <div>
             <label class="block font-bold text-stone-800 mb-1">Номер телефона</label>
-            <input id="book-phone" required type="tel" placeholder="+7 (928) 000-00-00" class="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] focus:ring-1 focus:ring-[#023112] bg-stone-50/50">
+            <input id="book-phone" required type="tel" placeholder="+7 (928) 000-00-00" class="w-full min-h-[42px] px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] focus:ring-1 focus:ring-[#023112] bg-stone-50/50">
           </div>
         </div>
 
-        <!-- Zone Selector (Visual Options + Fallback Select) -->
+        <!-- Zone Selector (Clean typography, no emojis) -->
         <div>
-          <label class="block font-bold text-stone-800 mb-1.5">Выберите зону посадки</label>
-          <select id="book-zone" class="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] bg-white font-medium text-stone-800">
-            <option value="Приватная закрытая VIP-кабинка (до 10 чел.)">🛋 Приватная VIP-кабинка (до 10 чел. • мягкие диваны)</option>
-            <option value="Основной зал ресторана">🍽 Уютный столик в основном зале</option>
-            <option value="Зона рядом с детской комнатой">🧸 Семейный стол у детской игровой</option>
-            <option value="Банкетная зона (день рождения)">🎂 Банкетная зона (Праздник / Скидка 10%)</option>
+          <label class="block font-bold text-stone-800 mb-1">Выберите зону посадки</label>
+          <select id="book-zone" class="w-full min-h-[42px] px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] bg-white font-medium text-stone-800">
+            <option value="Приватная закрытая VIP-кабинка (до 10 чел.)">Приватная VIP-кабинка (до 10 гостей • мягкие диваны)</option>
+            <option value="Основной зал ресторана">Основной зал ресторана (столик с мягкими диванами)</option>
+            <option value="Зона рядом с детской комнатой">Семейный стол рядом с детской комнатой</option>
+            <option value="Банкетная зона (день рождения)">Банкетная зона (торжество / мероприятие • скидка 10%)</option>
           </select>
         </div>
 
         <!-- Date & Time Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
             <label class="block font-bold text-stone-800 mb-1">Дата визита</label>
-            <input id="book-date" required type="date" class="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] bg-white">
+            <input id="book-date" required type="date" class="w-full min-h-[42px] px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] bg-white">
           </div>
           <div>
             <label class="block font-bold text-stone-800 mb-1">Время</label>
-            <input id="book-time" required type="time" value="19:00" class="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] bg-white">
+            <input id="book-time" required type="time" value="19:00" class="w-full min-h-[42px] px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:border-[#023112] bg-white">
           </div>
         </div>
 
         <!-- Quick Time Selector Chips -->
         <div>
-          <span class="block text-[11px] text-stone-500 font-medium mb-1.5">Популярное время:</span>
-          <div class="flex flex-wrap gap-2">
+          <span class="block text-[11px] text-stone-500 font-medium mb-1">Популярное время:</span>
+          <div class="flex flex-wrap gap-1.5">
             <button type="button" onclick="setBookingTime('13:00', this)" class="time-chip">13:00</button>
             <button type="button" onclick="setBookingTime('15:00', this)" class="time-chip">15:00</button>
-            <button type="button" onclick="setBookingTime('18:00', this)" class="time-chip">18:00</button>
-            <button type="button" onclick="setBookingTime('19:30', this)" class="time-chip active">19:30</button>
+            <button type="button" onclick="setBookingTime('17:00', this)" class="time-chip">17:00</button>
+            <button type="button" onclick="setBookingTime('19:00', this)" class="time-chip active">19:00</button>
             <button type="button" onclick="setBookingTime('21:00', this)" class="time-chip">21:00</button>
           </div>
         </div>
 
-        <!-- Guests Count (Chips + Manual Input) -->
+        <!-- Guests Count (Touch chips with ergonomic styling) -->
         <div>
-          <label class="block font-bold text-stone-800 mb-1.5">Количество персон</label>
-          <div class="flex items-center gap-2 mb-2">
-            <button type="button" onclick="setBookingGuests(2, this)" class="guest-chip">2</button>
-            <button type="button" onclick="setBookingGuests(4, this)" class="guest-chip active">4</button>
-            <button type="button" onclick="setBookingGuests(6, this)" class="guest-chip">6</button>
-            <button type="button" onclick="setBookingGuests(8, this)" class="guest-chip">8</button>
-            <button type="button" onclick="setBookingGuests(10, this)" class="guest-chip">10+</button>
-            <div class="flex-1 min-w-[70px]">
-              <input id="book-guests" required type="number" min="1" max="50" value="4" class="w-full min-h-[42px] px-3 rounded-xl border border-stone-300 text-center font-bold font-tabular focus:outline-none focus:border-[#023112]">
-            </div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="font-bold text-stone-800">Количество персон</label>
+            <span class="text-[10px] text-stone-500">Без депозита</span>
+          </div>
+          <input id="book-guests" type="hidden" value="4">
+          <div class="grid grid-cols-5 gap-1.5">
+            <button type="button" onclick="setBookingGuests(2, this)" class="guest-chip min-h-[38px] font-semibold text-xs">2</button>
+            <button type="button" onclick="setBookingGuests(4, this)" class="guest-chip active min-h-[38px] font-semibold text-xs">4</button>
+            <button type="button" onclick="setBookingGuests(6, this)" class="guest-chip min-h-[38px] font-semibold text-xs">6</button>
+            <button type="button" onclick="setBookingGuests(8, this)" class="guest-chip min-h-[38px] font-semibold text-xs">8</button>
+            <button type="button" onclick="setBookingGuests(10, this)" class="guest-chip min-h-[38px] font-semibold text-xs">10+</button>
           </div>
         </div>
 
-        <!-- Submit Button -->
-        <div class="pt-2">
+        <!-- Submit Button (Fixed ergonomics) -->
+        <div class="pt-1.5">
           <button 
             type="submit" 
-            class="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#023112] to-[#064b1d] hover:brightness-110 text-white font-bold text-sm shadow-md transition-all active:scale-98 flex items-center justify-center gap-2 border border-[#c5a059]/40 touch-target"
+            class="w-full min-h-[46px] py-3 px-4 rounded-xl bg-gradient-to-r from-[#023112] to-[#064b1d] hover:brightness-110 text-white font-bold text-sm shadow-md transition-all active:scale-98 flex items-center justify-center gap-2 border border-[#c5a059]/40 touch-target"
           >
-            <svg class="w-5 h-5 text-[#e6c587]" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-[#25D366]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
             </svg>
             <span>Забронировать через WhatsApp</span>

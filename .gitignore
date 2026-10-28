@@ -1,5 +1,6 @@
 # Среда разработки и логи
 .playwright-mcp/
+.design-review/
 .agents/
 skills-lock.json
 *.log
@@ -23,6 +24,10 @@ scratch/
 
 # Внутренние заметки
 PITCH_BEINI_IIKO.md
+
+# Бинарники Go
+*.exe
+server
 
 # Системные файлы
 .DS_Store
