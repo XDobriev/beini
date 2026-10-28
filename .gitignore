@@ -12,6 +12,7 @@ download_*.py
 inspect_*.py
 extract_*.py
 preview_*.png
+iiko_*.png
 
 # Внутренние заметки
 PITCH_BEINI_IIKO.md
@@ -21,3 +22,4 @@ PITCH_BEINI_IIKO.md
 Thumbs.db
 .vscode/
 .idea/
+
