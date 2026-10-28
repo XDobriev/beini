@@ -13,6 +13,13 @@ inspect_*.py
 extract_*.py
 preview_*.png
 iiko_*.png
+iiko_*.json
+iiko_config.json
+fetch_iiko_menu.py
+sync_iiko.py
+test_*.py
+taplink_dump.html
+scratch/
 
 # Внутренние заметки
 PITCH_BEINI_IIKO.md
