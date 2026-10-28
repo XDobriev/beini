@@ -1,0 +1,23 @@
+# Среда разработки и логи
+.playwright-mcp/
+.agents/
+skills-lock.json
+*.log
+*.tmp
+__pycache__/
+*.pyc
+
+# Временные скрипты и превью
+download_*.py
+inspect_*.py
+extract_*.py
+preview_*.png
+
+# Внутренние заметки
+PITCH_BEINI_IIKO.md
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
