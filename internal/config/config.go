@@ -28,6 +28,14 @@ type Config struct {
 	TerminalGroupID string       `json:"terminalGroupId"`
 	OrderTypes      OrderTypes   `json:"orderTypes"`
 	PaymentTypes    PaymentTypes `json:"paymentTypes"`
+
+	// DeliveryCity — город для адреса доставки (iiko ищет улицу по названию и городу)
+	DeliveryCity string `json:"deliveryCity"`
+	// TransportToFrontTimeout — сколько секунд iikoFront может забирать заказ из облака,
+	// после этого заказ аннулируется (в iiko по умолчанию 8 секунд)
+	TransportToFrontTimeout int `json:"transportToFrontTimeout"`
+	// TestToken — секрет для /api/test-order; пустой — тест доступен только с localhost
+	TestToken string `json:"testToken"`
 }
 
 // Load загружает конфигурацию из файла (по умолчанию iiko_config.json) и применяет ENV-переменные
@@ -42,7 +50,9 @@ func Load(path string) (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port: "8080", // Порт по умолчанию
+		Port:                    "8080", // Порт по умолчанию
+		DeliveryCity:            "Назрань",
+		TransportToFrontTimeout: 60,
 	}
 
 	if err := json.Unmarshal(data, cfg); err != nil {
@@ -63,6 +73,9 @@ func Load(path string) (*Config, error) {
 		cfg.ClientSecret = envSecret
 	}
 
+	if envToken := os.Getenv("TEST_ORDER_TOKEN"); envToken != "" {
+		cfg.TestToken = envToken
+	}
+
 	return cfg, nil
 }
-

@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 
@@ -14,16 +17,19 @@ import (
 type OrderHandler struct {
 	iikoClient *iiko.Client
 	logger     *slog.Logger
+	testToken  string
 }
 
-// NewOrderHandler инициализирует OrderHandler
-func NewOrderHandler(client *iiko.Client, logger *slog.Logger) *OrderHandler {
+// NewOrderHandler инициализирует OrderHandler.
+// testToken защищает /api/test-order; пустой — тест доступен только с localhost.
+func NewOrderHandler(client *iiko.Client, logger *slog.Logger, testToken string) *OrderHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &OrderHandler{
 		iikoClient: client,
 		logger:     logger,
+		testToken:  testToken,
 	}
 }
 
@@ -41,10 +47,14 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := order.Validate(); err != nil {
+		h.sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	res, err := h.iikoClient.CreateDeliveryOrder(r.Context(), &order)
 	if err != nil {
-		h.logger.Error("ошибка передачи заказа в iikoCloud", "error", err)
-		h.sendError(w, http.StatusInternalServerError, "Ошибка создания заказа в кассе: "+err.Error())
+		h.handleOrderError(w, err)
 		return
 	}
 
@@ -52,22 +62,53 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		"success":        true,
 		"correlationId":  res.CorrelationID,
 		"creationStatus": res.OrderInfo.CreationStatus,
-		"orderInfo":      res.OrderInfo,
+		// pending — касса ещё не подтвердила приём; заказ сохранён и будет передан
+		"pending":   res.OrderInfo.CreationStatus != iiko.StatusSuccess,
+		"orderInfo": res.OrderInfo,
 	})
+}
+
+// handleOrderError переводит ошибку клиента iiko в HTTP-ответ
+func (h *OrderHandler) handleOrderError(w http.ResponseWriter, err error) {
+	var orderErr *iiko.OrderError
+	if errors.As(err, &orderErr) {
+		h.logger.Error("касса отклонила заказ", "error", err)
+		h.sendError(w, http.StatusUnprocessableEntity, "Касса не приняла заказ: "+orderErr.Error())
+		return
+	}
+	h.logger.Error("ошибка передачи заказа в iikoCloud", "error", err)
+	h.sendError(w, http.StatusBadGateway, "Не удалось передать заказ в кассу")
+}
+
+// testAllowed разрешает тестовый заказ по токену либо только с localhost
+func (h *OrderHandler) testAllowed(r *http.Request) bool {
+	if h.testToken != "" {
+		got := r.Header.Get("X-Test-Token")
+		return subtle.ConstantTimeCompare([]byte(got), []byte(h.testToken)) == 1
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return false
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // SendTestOrder обрабатывает POST /api/test-order (тестовый прогон на кассу)
 func (h *OrderHandler) SendTestOrder(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost && r.Method != http.MethodGet {
-		h.sendError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
+	if r.Method != http.MethodPost {
+		h.sendError(w, http.StatusMethodNotAllowed, "Разрешен только метод POST")
+		return
+	}
+	if !h.testAllowed(r) {
+		h.sendError(w, http.StatusForbidden, "Тестовый заказ недоступен")
 		return
 	}
 
 	h.logger.Info("запуск тестового заказа через API")
 	res, err := h.iikoClient.SendTestOrder(r.Context())
 	if err != nil {
-		h.logger.Error("ошибка при выполнении тестового заказа", "error", err)
-		h.sendError(w, http.StatusInternalServerError, "Ошибка тестового заказа: "+err.Error())
+		h.handleOrderError(w, err)
 		return
 	}
 
@@ -103,4 +144,3 @@ func (h *OrderHandler) sendError(w http.ResponseWriter, statusCode int, message 
 		"error":   message,
 	})
 }
-

@@ -21,11 +21,15 @@ type IikoCustomer struct {
 // IikoStreet описание улицы в адресе доставки
 type IikoStreet struct {
 	Name string `json:"name"`
+	City string `json:"city"`
 }
 
-// IikoAddress адрес точки доставки
+// IikoAddress адрес точки доставки (type "legacy": улица и дом обязательны)
 type IikoAddress struct {
+	Type   string     `json:"type"`
 	Street IikoStreet `json:"street"`
+	House  string     `json:"house"`
+	Flat   string     `json:"flat,omitempty"`
 }
 
 // IikoDeliveryPoint точка доставки заказа
@@ -60,12 +64,38 @@ type IikoOrder struct {
 	Comment       string             `json:"comment"`
 }
 
+// CreateOrderSettings параметры создания заказа
+type CreateOrderSettings struct {
+	TransportToFrontTimeout int `json:"transportToFrontTimeout"`
+}
+
 // CreateDeliveryRequest запрос к /api/1/deliveries/create
 type CreateDeliveryRequest struct {
-	OrganizationID  string    `json:"organizationId"`
-	TerminalGroupID string    `json:"terminalGroupId"`
-	Order           IikoOrder `json:"order"`
+	OrganizationID      string              `json:"organizationId"`
+	TerminalGroupID     string              `json:"terminalGroupId"`
+	CreateOrderSettings CreateOrderSettings `json:"createOrderSettings"`
+	Order               IikoOrder           `json:"order"`
 }
+
+// OrdersByIDRequest запрос к /api/1/deliveries/by_id
+type OrdersByIDRequest struct {
+	OrganizationID string   `json:"organizationId"`
+	OrderIDs       []string `json:"orderIds"`
+}
+
+// OrdersByIDResponse ответ от /api/1/deliveries/by_id
+type OrdersByIDResponse struct {
+	CorrelationID string      `json:"correlationId"`
+	Orders        []OrderInfo `json:"orders"`
+}
+
+// Статусы создания заказа (creationStatus)
+const (
+	StatusSuccess    = "Success"
+	StatusInProgress = "InProgress"
+	StatusError      = "Error"
+	StatusCancelled  = "Cancelled"
+)
 
 // ErrorInfo описание ошибки создания заказа на кассовом терминале
 type ErrorInfo struct {
@@ -87,4 +117,3 @@ type CreateDeliveryResponse struct {
 	OrderInfo        OrderInfo `json:"orderInfo"`
 	ErrorDescription string    `json:"errorDescription,omitempty"`
 }
-

@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +22,9 @@ type Client struct {
 	cfg        *config.Config
 	httpClient *http.Client
 	logger     *slog.Logger
+
+	// pollTimeout — сколько ждать итогового статуса заказа после отправки
+	pollTimeout time.Duration
 
 	// Кэш токена авторизации с двойной блокировкой RWMutex
 	mu             sync.RWMutex
@@ -45,7 +49,8 @@ func NewClient(cfg *config.Config, logger *slog.Logger) *Client {
 				IdleConnTimeout:       90 * time.Second,
 			},
 		},
-		logger: logger,
+		logger:      logger,
+		pollTimeout: 12 * time.Second,
 	}
 }
 
@@ -125,21 +130,34 @@ func (c *Client) CreateDeliveryOrder(ctx context.Context, order *domain.Order) (
 
 	// Точка доставки (для курьера)
 	var deliveryPoint *IikoDeliveryPoint
-	if order.DeliveryType == domain.DeliveryByCourier && order.Address != "" {
+	if order.DeliveryType == domain.DeliveryByCourier {
+		addr, err := domain.ParseAddress(order.Address)
+		if err != nil {
+			return nil, err
+		}
 		deliveryPoint = &IikoDeliveryPoint{
 			Address: IikoAddress{
-				Street: IikoStreet{Name: order.Address},
+				Type:   "legacy",
+				Street: IikoStreet{Name: addr.Street, City: c.cfg.DeliveryCity},
+				House:  addr.House,
+				Flat:   addr.Flat,
 			},
 		}
 	}
 
+	customerName := strings.TrimSpace(order.CustomerName)
+	if customerName == "" {
+		customerName = "Гость с сайта"
+	}
+
 	reqPayload := CreateDeliveryRequest{
-		OrganizationID:  c.cfg.OrganizationID,
-		TerminalGroupID: c.cfg.TerminalGroupID,
+		OrganizationID:      c.cfg.OrganizationID,
+		TerminalGroupID:     c.cfg.TerminalGroupID,
+		CreateOrderSettings: CreateOrderSettings{TransportToFrontTimeout: c.cfg.TransportToFrontTimeout},
 		Order: IikoOrder{
 			Phone:         order.Phone,
 			OrderTypeID:   orderTypeID,
-			Customer:      IikoCustomer{Name: order.CustomerName, Type: "regular"},
+			Customer:      IikoCustomer{Name: customerName, Type: "regular"},
 			DeliveryPoint: deliveryPoint,
 			Items:         iikoItems,
 			Payments: []IikoPayment{
@@ -166,7 +184,69 @@ func (c *Client) CreateDeliveryOrder(ctx context.Context, order *domain.Order) (
 		return nil, fmt.Errorf("ошибка вызова /api/1/deliveries/create: %w", err)
 	}
 
-	return &resp, nil
+	return c.awaitOrder(ctx, &resp)
+}
+
+// OrderError — заказ отклонён iiko (статус Error/Cancelled или не принят кассой вовремя)
+type OrderError struct {
+	Status string
+	Info   *ErrorInfo
+}
+
+func (e *OrderError) Error() string {
+	if e.Info != nil {
+		return fmt.Sprintf("касса не приняла заказ (%s): %s %s", e.Info.Code, e.Info.Message, e.Info.Description)
+	}
+	return "касса не приняла заказ, статус: " + e.Status
+}
+
+// awaitOrder ждёт итогового creationStatus: создание в iiko асинхронное,
+// Success означает, что заказ принят iikoFront. Если касса не успела, возвращает InProgress без ошибки.
+func (c *Client) awaitOrder(ctx context.Context, resp *CreateDeliveryResponse) (*CreateDeliveryResponse, error) {
+	deadline := time.Now().Add(c.pollTimeout)
+	for {
+		switch resp.OrderInfo.CreationStatus {
+		case StatusSuccess:
+			return resp, nil
+		case StatusError, StatusCancelled:
+			return resp, &OrderError{Status: resp.OrderInfo.CreationStatus, Info: resp.OrderInfo.ErrorInfo}
+		}
+		if time.Now().After(deadline) {
+			c.logger.Warn("заказ ещё не принят кассой, статус InProgress", "orderId", resp.OrderInfo.ID)
+			return resp, nil
+		}
+		select {
+		case <-ctx.Done():
+			return resp, ctx.Err()
+		case <-time.After(time.Second):
+		}
+		info, err := c.getOrderInfo(ctx, resp.OrderInfo.ID)
+		if err != nil {
+			c.logger.Warn("не удалось получить статус заказа", "orderId", resp.OrderInfo.ID, "error", err)
+			continue
+		}
+		resp.OrderInfo = *info
+	}
+}
+
+// getOrderInfo запрашивает актуальный статус заказа через /api/1/deliveries/by_id
+func (c *Client) getOrderInfo(ctx context.Context, orderID string) (*OrderInfo, error) {
+	token, err := c.GetToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var resp OrdersByIDResponse
+	err = c.postJSON(ctx, "/api/1/deliveries/by_id", OrdersByIDRequest{
+		OrganizationID: c.cfg.OrganizationID,
+		OrderIDs:       []string{orderID},
+	}, &resp, token)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Orders) == 0 {
+		return nil, errors.New("заказ не найден в iikoCloud")
+	}
+	return &resp.Orders[0], nil
 }
 
 // SendTestOrder отправляет тестовый заказ самовывоза на 0 ₽ для живой проверки в ресторане
