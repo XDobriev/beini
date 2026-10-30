@@ -1,0 +1,19 @@
+{
+  "apiBaseUrl": "https://api-ru.iiko.services",
+  "appId": "00000000-0000-0000-0000-000000000000",
+  "clientSecret": "YOUR_IIKO_CLIENT_SECRET_BASE64_HERE",
+  "apiKey": "YOUR_IIKO_API_LOGIN_HERE",
+  "organizationId": "00000000-0000-0000-0000-000000000000",
+  "terminalGroupId": "00000000-0000-0000-0000-000000000000",
+  "orderTypes": {
+    "deliveryByCourier": "00000000-0000-0000-0000-000000000000",
+    "deliveryPickUp": "00000000-0000-0000-0000-000000000000",
+    "common": "00000000-0000-0000-0000-000000000000"
+  },
+  "paymentTypes": {
+    "cash": "00000000-0000-0000-0000-000000000000"
+  },
+  "deliveryCity": "Назрань",
+  "transportToFrontTimeout": 60,
+  "testToken": ""
+}

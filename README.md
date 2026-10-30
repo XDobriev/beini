@@ -4,39 +4,81 @@
 
 ## Основной функционал
 
-- **Интерактивное меню:** рубрикатор по разделам (мясо на углях, гриль, супы, салаты, суши, десерты, кофе с урбечом).
+- **Интерактивное меню:** рубрикатор по разделам (мясо на углях, гриль, супы, салаты, суши, десерты, авторские чаи и кофе с урбечом).
 - **Корзина доставки и самовывоза:** быстрый расчет суммы, выбор способа получения и адреса.
-- **Оформление заказа:** автоматическое формирование форматированного чека и отправка в WhatsApp администратора.
-- **Бронирование столов и кабинок:** интерактивная форма резерва с выбором приватных закрытых кабинок или общего зала.
-- **Связка с iikoCloud:** интеграция через Public API v2 с передачей заказов на терминал iikoFront (`sync_iiko.py`, `iiko_config.json`).
-- **Тестирование кассы:** готовый сценарий для проверки в ресторане (`test_order.py`, см. `TESTING_IIKO_FRIDAY.md`).
+- **Оформление заказа:** прямая передача заказа в кассовую систему iikoFront через API-шлюз либо дублирование в WhatsApp администратора.
+- **Бронирование столов и кабинок:** интерактивная форма резерва с выбором приватных закрытых кабинок (до 10 гостей) или общего зала.
+- **Связка с iikoCloud:** интеграция через Public API v2 с передачей заказов на терминал iikoFront (`internal/iiko`, `iiko_config.json`).
+- **Тестирование кассы:** служебный изолированный интерфейс (`/demo`, см. `TESTING_IIKO_FRIDAY.md`) и консольный инструмент (`cmd/test-order`).
 
-## Стек
+## Стек и архитектура
 
-- **Бэкенд:** Golang 1.22+ (`net/http`, `log/slog`, `sync.RWMutex`, Graceful Shutdown)
-- **Фронтенд:** HTML5, Tailwind CSS, Vanilla JS (ES6+)
-- **Интеграция:** iikoCloud Public API v2 (JWT Auth, Deliveries API)
-- **Контейнеризация:** Docker, Docker Compose (Multi-stage билд ~20 МБ)
-- **Шрифты:** Playfair Display, Manrope
-- **Адаптивная верстка:** Mobile First
+- **Бэкенд:** Golang 1.24+ (совместим с Go 1.22+; `net/http`, `log/slog`, `sync.RWMutex`, Graceful Shutdown).
+  - Безопасная раздача статических файлов (без утечки конфигов и исходного кода).
+  - Корректный 404 fallback: JSON 404 для `/api/*`, честный 404 для отсутствующих статических ассетов (`.css`, `.js`, `.png` и др.), SPA fallback на `index.html` для навигации.
+  - Middleware: CORS (с поддержкой `X-Test-Token`), Structured Logging (`slog`), Panic Recoverer.
+  - Таймауты: ReadTimeout 15s, WriteTimeout 45s, IdleTimeout 60s, Shutdown 10s.
+- **Фронтенд (Zero-Bloat & Subtractive Design):**
+  - Чистый HTML5, нативный CSS Grid / Flexbox на CSS Variables. Полное отсутствие внешних runtime CDN и библиотек.
+  - **Типографика:** `Cormorant` (с `lining-nums` для цифр цен) + `Golos Text`.
+  - **Палитра:** теплый холст (`#FAF8F3`), чернила (`#1F3A2B`), рубиновый гранат (`#A3161A`).
+  - **Адаптивность:** Mobile First с единой точкой перелома `@media (min-width: 1024px)`.
+- **Интеграция:** iikoCloud Public API v2 (JWT Auth, Deliveries API v2).
+- **Контейнеризация:** Multi-stage Dockerfile (~13.2 МБ на базе `alpine:3.19`), Docker Compose.
 
-## Запуск проекта
+## HTTP API
 
-1. **Запуск полноценного Go-сервера (фронтенд + API):**
+| Метод | Путь | Описание |
+| :--- | :--- | :--- |
+| `GET` | `/` | Главная страница сайта ресторана BEINI |
+| `GET` | `/api/health` | Проверка жизнеспособности сервера (health check) |
+| `POST` | `/api/order` | Прием заказа от гостя и создание доставки в iikoCloud |
+| `POST` | `/api/test-order` | Отправка тестового заказа на терминал кассы (защищен `X-Test-Token` / localhost) |
+| `GET` | `/demo` | Служебная страница ручной проверки связи с терминалом |
+
+## Проверенные команды запуска и тестирования
+
+### 1. Модульное тестирование (без реальных ключей iiko и без внешнего API)
+
+```bash
+go test ./...
+```
+Все тесты пакетов `internal/config`, `internal/domain`, `internal/handler`, `internal/iiko` и `internal/middleware` изолированы и выполняются на моках (`httptest.Server`).
+
+### 2. Сборка проекта
+
+```bash
+# Компиляция всех пакетов проекта
+go build ./...
+
+# Сборка бинарного исполняемого файла
+go build -o server.exe ./cmd/server
+```
+
+### 3. Локальный запуск сервера
+
 ```bash
 go run ./cmd/server
 ```
 Сервер стартует на `http://localhost:8080`.
 
-2. **Быстрый консольный тест связи с терминалом кассы:**
+### 4. Консольный тест связи с кассой
+
 ```bash
 go run ./cmd/test-order
 ```
 
-3. **Сборка продакшен бинарника:**
+### 5. Сборка и запуск в Docker
+
 ```bash
-go build -o server.exe ./cmd/server
+# Сборка легковесного Docker-образа
+docker build -t beini-backend .
+
+# Запуск контейнера с пробросом порта и монтированием конфигурации
+docker run -p 8080:8080 -v "${PWD}/iiko_config.json:/app/iiko_config.json:ro" beini-backend
+
+# Либо запуск через Docker Compose
+docker compose up -d --build
 ```
 
-Подробные инструкции по тестированию описаны в файле `TESTING_IIKO_FRIDAY.md`, а системные инструкции для Claude Code — в `CLAUDE.md`.
-
+Конфигурационный шаблон находится в `iiko_config.example.json`. Боевые ключи задаются в `iiko_config.json` либо через переменные окружения (`IIKO_API_KEY`, `IIKO_APP_ID`, `IIKO_CLIENT_SECRET`, `IIKO_ORGANIZATION_ID`, `IIKO_TERMINAL_GROUP_ID`).

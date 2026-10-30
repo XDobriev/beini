@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Go binaries
+*.exe
+server
+
+# AI / IDE tooling
+.agents/
+.design-review/
+.impeccable/
+.playwright-mcp/
+.vscode/
+.idea/
+skills-lock.json
+
+# Local secrets and configs
+iiko_config.json
+.iiko_token_cache.json
+.env
+*.env
+
+# Python and scrapers
+__pycache__/
+*.pyc
+*.py
+tools/
+scratch/
+taplink_dump.html
+iiko_*.json
+!iiko_config.example.json
+
+# Local docs, dumps and notes
+PITCH_BEINI_IIKO.md
+*.md
+*.zip
+*.png
+*.log
+*.tmp
+Бейни редизайн сайта/
+

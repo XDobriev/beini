@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // OrderTypes хранит GUID типов заказов в iiko
@@ -36,6 +37,8 @@ type Config struct {
 	TransportToFrontTimeout int `json:"transportToFrontTimeout"`
 	// TestToken — секрет для /api/test-order; пустой — тест доступен только с localhost
 	TestToken string `json:"testToken"`
+	// AllowedOrigins — разрешенные домены для CORS (по умолчанию production-домены и localhost)
+	AllowedOrigins []string `json:"allowedOrigins"`
 }
 
 // Load загружает конфигурацию из файла (по умолчанию iiko_config.json) и применяет ENV-переменные
@@ -44,22 +47,35 @@ func Load(path string) (*Config, error) {
 		path = "iiko_config.json"
 	}
 
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения конфигурационного файла %s: %w", path, err)
-	}
-
 	cfg := &Config{
 		Port:                    "8080", // Порт по умолчанию
 		DeliveryCity:            "Назрань",
 		TransportToFrontTimeout: 60,
 	}
 
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Если файл отсутствует, пробуем применить переменные окружения (12-Factor App)
+			applyEnv(cfg)
+			if cfg.APIKey != "" || cfg.AppID != "" {
+				return cfg, nil
+			}
+			return nil, fmt.Errorf("конфигурационный файл %s не найден и обязательные переменные окружения не заданы: %w", path, err)
+		}
+		return nil, fmt.Errorf("ошибка чтения конфигурационного файла %s: %w", path, err)
+	}
+
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("ошибка парсинга конфигурации: %w", err)
 	}
 
-	// Переопределение через переменные окружения (стандарт 12-Factor App для продакшена)
+	applyEnv(cfg)
+	return cfg, nil
+}
+
+// applyEnv переопределяет параметры конфигурации из переменных окружения
+func applyEnv(cfg *Config) {
 	if envPort := os.Getenv("PORT"); envPort != "" {
 		cfg.Port = envPort
 	}
@@ -72,10 +88,23 @@ func Load(path string) (*Config, error) {
 	if envSecret := os.Getenv("IIKO_CLIENT_SECRET"); envSecret != "" {
 		cfg.ClientSecret = envSecret
 	}
-
+	if envOrgID := os.Getenv("IIKO_ORGANIZATION_ID"); envOrgID != "" {
+		cfg.OrganizationID = envOrgID
+	}
+	if envTerminalID := os.Getenv("IIKO_TERMINAL_GROUP_ID"); envTerminalID != "" {
+		cfg.TerminalGroupID = envTerminalID
+	}
 	if envToken := os.Getenv("TEST_ORDER_TOKEN"); envToken != "" {
 		cfg.TestToken = envToken
 	}
-
-	return cfg, nil
+	if envOrigins := os.Getenv("ALLOWED_ORIGINS"); envOrigins != "" {
+		parts := strings.Split(envOrigins, ",")
+		var origins []string
+		for _, p := range parts {
+			if trimmed := strings.TrimSpace(p); trimmed != "" {
+				origins = append(origins, trimmed)
+			}
+		}
+		cfg.AllowedOrigins = origins
+	}
 }

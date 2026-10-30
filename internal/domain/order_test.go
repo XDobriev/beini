@@ -1,5 +1,6 @@
 package domain
 
+import (
 	"beini-backend/internal/catalog"
 	"strings"
 	"testing"

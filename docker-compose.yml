@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: beini-backend:latest
     container_name: beini_backend
     restart: unless-stopped
     ports:
@@ -12,4 +13,5 @@ services:
     environment:
       - PORT=8080
       - TZ=Europe/Moscow
-
+    volumes:
+      - ./iiko_config.json:/app/iiko_config.json:ro

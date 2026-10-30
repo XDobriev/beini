@@ -5,17 +5,17 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Кэширование зависимостей
+# Кэширование зависимостей модулей Go
 COPY go.mod ./
 RUN go mod download
 
-# Копирование исходного кода
+# Копирование исходного кода проекта
 COPY . .
 
-# Сборка статического бинарника без CGO с оптимизацией размера
+# Сборка бинарника для Linux без CGO
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/server ./cmd/server
 
-# 2. Финальный образ (Production runtime)
+# 2. Финальный легковесный runtime-образ
 FROM alpine:3.19
 
 RUN apk --no-cache add ca-certificates tzdata
@@ -23,12 +23,12 @@ ENV TZ=Europe/Moscow
 
 WORKDIR /app
 
-# Копируем скомпилированный бинарник
+# Копируем скомпилированный бинарник сервера
 COPY --from=builder /app/server .
 
-# Копируем конфигурацию и статические файлы сайта
-COPY iiko_config.json .
-COPY index.html .
+# Копируем конфигурационный шаблон и статические файлы сайта
+COPY iiko_config.example.json ./
+COPY index.html demo.html ./
 COPY assets/ ./assets/
 COPY css/ ./css/
 COPY js/ ./js/
@@ -36,4 +36,3 @@ COPY js/ ./js/
 EXPOSE 8080
 
 CMD ["./server"]
-
