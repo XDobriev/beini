@@ -391,6 +391,60 @@ func TestCreateOrder_AmountLimits(t *testing.T) {
 	}
 }
 
+func TestCreateOrder_UnsupportedMediaType(t *testing.T) {
+	h := newTestHandler("")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/order", strings.NewReader("some-text"))
+	req.Header.Set("Content-Type", "text/plain")
+	w := httptest.NewRecorder()
+
+	h.CreateOrder(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusUnsupportedMediaType {
+		t.Fatalf("StatusCode = %d; want 415 (StatusUnsupportedMediaType)", resp.StatusCode)
+	}
+}
+
+func TestCreateOrder_IdempotencyPayloadMismatch(t *testing.T) {
+	srv, _ := newMockServer(t)
+	h, _, _ := newTestHandlerWithServer(t, srv.URL, "")
+
+	payload1 := `{
+		"customerName": "Адам",
+		"phone": "+7 920 482-77-77",
+		"deliveryType": "pickup",
+		"items": [{"productId": "beini-grill-01", "amount": 1}]
+	}`
+	payload2 := `{
+		"customerName": "Магомед",
+		"phone": "+7 920 482-77-77",
+		"deliveryType": "pickup",
+		"items": [{"productId": "beini-grill-02", "amount": 2}]
+	}`
+
+	key := "shared-idempotency-key"
+
+	// 1. Первый заказ
+	req1 := httptest.NewRequest(http.MethodPost, "/api/order", strings.NewReader(payload1))
+	req1.Header.Set("Idempotency-Key", key)
+	w1 := httptest.NewRecorder()
+	h.CreateOrder(w1, req1)
+	if w1.Code != http.StatusOK {
+		t.Fatalf("первый заказ не прошел: %d", w1.Code)
+	}
+
+	// 2. Второй заказ с ДРУГИМ телом и ТЕМ ЖЕ ключом -> 422 Unprocessable Entity
+	req2 := httptest.NewRequest(http.MethodPost, "/api/order", strings.NewReader(payload2))
+	req2.Header.Set("Idempotency-Key", key)
+	w2 := httptest.NewRecorder()
+	h.CreateOrder(w2, req2)
+
+	if w2.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("StatusCode = %d; want 422 (StatusUnprocessableEntity)", w2.Code)
+	}
+}
+
 func TestSendTestOrder_MethodNotAllowed(t *testing.T) {
 	h := newTestHandler("")
 
@@ -418,5 +472,21 @@ func TestSendTestOrder_ForbiddenWhenRemoteAndNoToken(t *testing.T) {
 	resp := w.Result()
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("StatusCode = %d; want 403", resp.StatusCode)
+	}
+}
+
+func TestSendTestOrder_ProxyForbiddenWhenNoToken(t *testing.T) {
+	h := newTestHandler("") // без токена
+
+	// Запрос с loopback, но с заголовком X-Forwarded-For (запрос пришел через внешний прокси)
+	req := httptest.NewRequest(http.MethodPost, "/api/test-order", nil)
+	req.RemoteAddr = "127.0.0.1:12345"
+	req.Header.Set("X-Forwarded-For", "203.0.113.195")
+	w := httptest.NewRecorder()
+
+	h.SendTestOrder(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("StatusCode = %d; want 403 (запрещено за прокси без токена)", w.Code)
 	}
 }

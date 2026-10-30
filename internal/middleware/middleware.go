@@ -130,14 +130,10 @@ func NewCORS(allowedOrigins []string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Если origin НЕ разрешен:
-			if r.Method == http.MethodOptions {
-				http.Error(w, `{"error": "CORS origin не разрешен"}`, http.StatusForbidden)
-				return
-			}
-
-			// Для обычных запросов с недоверенным Origin не ставим Access-Control-Allow-Origin
-			next.ServeHTTP(w, r)
+			// Если origin НЕ разрешен — блокируем ЛЮБОЙ HTTP-метод от чужого Origin (защита от CSRF и Simple Requests)
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"success": false, "error": "CORS origin не разрешен"}`))
 		})
 	}
 }

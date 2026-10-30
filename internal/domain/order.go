@@ -19,12 +19,12 @@ const (
 
 // Константы ограничений для защиты от переполнения и некорректных данных
 const (
-	MaxOrderPositions   = 50
-	MaxAmountPerItem    = 50
-	MaxTotalAmount      = 200
-	MaxCustomerNameLen  = 100
-	MaxCommentLen       = 500
-	MaxAddressLen       = 200
+	MaxOrderPositions  = 50
+	MaxAmountPerItem   = 50
+	MaxTotalAmount     = 200
+	MaxCustomerNameLen = 100
+	MaxCommentLen      = 500
+	MaxAddressLen      = 200
 )
 
 // OrderItem представляет одну позицию блюда в заказе

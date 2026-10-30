@@ -367,7 +367,7 @@
       deliveryType: state.orderType,
       address: state.orderType === 'delivery' ? state.form.address : '',
       comment: 'Заказ с сайта',
-      items: lines.map(l => ({ productId: l.dish.iikoId, amount: l.qty }))
+      items: lines.map(l => ({ productId: l.dish.id || l.dish.iikoId, amount: l.qty }))
     };
 
     const idempotencyKey = (window.crypto && typeof crypto.randomUUID === 'function')

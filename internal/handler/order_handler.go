@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -66,7 +69,33 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Проверка Idempotency Key (защита от повторной отправки)
+	// 1. Проверка заголовка Content-Type (защита от CSRF и Simple Requests)
+	ct := r.Header.Get("Content-Type")
+	if ct != "" && !strings.HasPrefix(strings.ToLower(strings.TrimSpace(ct)), "application/json") {
+		h.sendError(w, http.StatusUnsupportedMediaType, "Поддерживается только Content-Type: application/json")
+		return
+	}
+
+	// 2. Ограничение размера тела запроса (32 КБ) для предотвращения DoS-атак
+	r.Body = http.MaxBytesReader(w, r.Body, MaxOrderBodyBytes)
+	rawBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			h.logger.Warn("превышен максимальный размер тела заказа", "limit", MaxOrderBodyBytes)
+			h.sendError(w, http.StatusRequestEntityTooLarge, "Превышен максимальный размер тела запроса (32 КБ)")
+			return
+		}
+		h.logger.Warn("ошибка чтения тела заказа", "error", err)
+		h.sendError(w, http.StatusBadRequest, "Некорректный формат данных заказа")
+		return
+	}
+
+	// 3. Вычисление отпечатка полезной нагрузки (SHA-256)
+	sum := sha256.Sum256(rawBody)
+	payloadHash := hex.EncodeToString(sum[:])
+
+	// 4. Проверка Idempotency Key (защита от повторной отправки по RFC 9651)
 	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
 	if idempotencyKey == "" {
 		idempotencyKey = strings.TrimSpace(r.Header.Get("X-Idempotency-Key"))
@@ -74,10 +103,14 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	var completeIdemp func(code int, header http.Header, body []byte)
 	if idempotencyKey != "" {
-		cached, complete, release, err := h.idempotencyStore.Lock(idempotencyKey)
+		cached, complete, release, err := h.idempotencyStore.Lock(idempotencyKey, payloadHash)
 		if err != nil {
 			if errors.Is(err, idempotency.ErrConflict) {
 				h.sendError(w, http.StatusConflict, "Заказ с данным ключом идемпотентности уже обрабатывается")
+				return
+			}
+			if errors.Is(err, idempotency.ErrPayloadMismatch) {
+				h.sendError(w, http.StatusUnprocessableEntity, "Ключ идемпотентности уже использован для другого заказа")
 				return
 			}
 			h.sendError(w, http.StatusBadRequest, "Некорректный ключ идемпотентности (от 1 до 128 символов)")
@@ -97,25 +130,15 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		completeIdemp = complete
 	}
 
-	// 2. Ограничение размера тела запроса (32 КБ) для предотвращения DoS-атак
-	r.Body = http.MaxBytesReader(w, r.Body, MaxOrderBodyBytes)
-
-	// 3. Декодирование JSON структуры
+	// 5. Декодирование JSON структуры
 	var order domain.Order
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&order); err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
-			h.logger.Warn("превышен максимальный размер тела заказа", "limit", MaxOrderBodyBytes)
-			h.sendError(w, http.StatusRequestEntityTooLarge, "Превышен максимальный размер тела запроса (32 КБ)")
-			return
-		}
-		h.logger.Warn("ошибка декодирования тела заказа", "error", err)
+	if err := json.Unmarshal(rawBody, &order); err != nil {
+		h.logger.Warn("ошибка парсинга JSON тела заказа", "error", err)
 		h.sendError(w, http.StatusBadRequest, "Некорректный формат данных заказа")
 		return
 	}
 
-	// 4. Сверка с серверным каталогом: сервер принимает ТОЛЬКО productId и количество,
+	// 6. Сверка с серверным каталогом: сервер принимает ТОЛЬКО productId и количество,
 	// полностью игнорируя присланные браузером price, name или sum, и вычисляет цену сам
 	if err := order.ResolveAndVerifyPrices(h.catalog); err != nil {
 		h.logger.Warn("ошибка сверки позиций заказа с каталогом", "error", err)
@@ -123,14 +146,14 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. Валидация доменных полей (телефон, адрес, ограничения длин)
+	// 7. Валидация доменных полей (телефон, адрес, ограничения длин)
 	if err := order.Validate(); err != nil {
 		h.logger.Warn("валидация заказа не пройдена", "error", err)
 		h.sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// 6. Отправка проверенного заказа на кассу ресторана через iiko
+	// 8. Отправка проверенного заказа на кассу ресторана через iiko
 	res, err := h.iikoClient.CreateDeliveryOrder(r.Context(), &order)
 	if err != nil {
 		h.handleOrderError(w, err)
@@ -182,11 +205,15 @@ func (h *OrderHandler) handleOrderError(w http.ResponseWriter, err error) {
 	h.sendError(w, http.StatusBadGateway, "Не удалось передать заказ в кассу ресторана")
 }
 
-// testAllowed разрешает тестовый заказ по токену либо только с localhost
+// testAllowed разрешает тестовый заказ по токену либо только с прямого localhost без проксирования
 func (h *OrderHandler) testAllowed(r *http.Request) bool {
 	if h.testToken != "" {
 		got := r.Header.Get("X-Test-Token")
 		return subtle.ConstantTimeCompare([]byte(got), []byte(h.testToken)) == 1
+	}
+	// Если токен не задан, запрещаем доступ при наличии внешних прокси-заголовков (защита за Nginx)
+	if r.Header.Get("X-Forwarded-For") != "" || r.Header.Get("X-Real-IP") != "" {
+		return false
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {

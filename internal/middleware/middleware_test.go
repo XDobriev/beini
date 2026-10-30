@@ -63,7 +63,7 @@ func TestCORS_AllowedOrigins(t *testing.T) {
 			name:         "Disallowed origin evil.com POST",
 			origin:       "https://evil.com",
 			method:       http.MethodPost,
-			wantStatus:   http.StatusOK, // Запрос обрабатывается, но заголовок CORS браузеру не дается
+			wantStatus:   http.StatusForbidden,
 			wantNoOrigin: true,
 		},
 		{

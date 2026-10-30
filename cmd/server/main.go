@@ -21,32 +21,72 @@ import (
 	"beini-backend/internal/middleware"
 )
 
+func serveIndex(w http.ResponseWriter, r *http.Request, dir string) {
+	indexPath := filepath.Join(dir, "index.html")
+	f, err := os.Open(indexPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeContent(w, r, "index.html", info.ModTime(), f)
+}
+
 // safeFileServer раздаёт статические файлы фронтенда, блокируя доступ к конфигам, коду и системным файлам,
 // и обеспечивает корректный 404 fallback для навигации.
 func safeFileServer(dir string) http.Handler {
 	fs := http.FileServer(http.Dir(dir))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clean := filepath.Clean(filepath.FromSlash(r.URL.Path))
-		base := filepath.Base(clean)
 
-		// Разрешаем обращение к корню сайта (отдаёт index.html)
-		if clean == `\` || clean == "/" || clean == "." || base == "." {
-			fs.ServeHTTP(w, r)
+		// Разрешаем прямое обращение к корню сайта и index.html без 301 редиректа
+		base := filepath.Base(clean)
+		if clean == `\` || clean == "/" || clean == "." || strings.EqualFold(base, "index.html") {
+			serveIndex(w, r, dir)
 			return
 		}
 
-		// Защита от скрытых файлов (.git, .env) и служебных форматов (конфиги, исходники, бинарники, скрипты)
+		// Разбиваем путь на сегменты и проверяем каждый сегмент
+		segments := strings.FieldsFunc(clean, func(c rune) bool {
+			return c == '/' || c == '\\'
+		})
+
+		for _, seg := range segments {
+			lowerSeg := strings.ToLower(seg)
+			// Блокируем любые скрытые папки и файлы (.git, .env, .github и т.д.)
+			if strings.HasPrefix(seg, ".") {
+				http.NotFound(w, r)
+				return
+			}
+			// Блокируем доступ к служебным директориям бэкенда
+			if lowerSeg == "internal" || lowerSeg == "cmd" || lowerSeg == "tools" || lowerSeg == "scratch" || lowerSeg == "data" {
+				http.NotFound(w, r)
+				return
+			}
+		}
+
+		// Защита от служебных форматов (конфиги, исходники, бинарники, скрипты)
 		lowerBase := strings.ToLower(base)
-		if strings.HasPrefix(base, ".") ||
-			strings.HasSuffix(lowerBase, ".json") ||
+		if strings.HasSuffix(lowerBase, ".json") ||
 			strings.HasSuffix(lowerBase, ".go") ||
 			strings.HasSuffix(lowerBase, ".mod") ||
 			strings.HasSuffix(lowerBase, ".sum") ||
 			strings.HasSuffix(lowerBase, ".exe") ||
 			strings.HasSuffix(lowerBase, ".md") ||
 			strings.HasSuffix(lowerBase, ".py") ||
+			strings.HasSuffix(lowerBase, ".yml") ||
+			strings.HasSuffix(lowerBase, ".yaml") ||
+			strings.HasSuffix(lowerBase, ".toml") ||
+			strings.HasSuffix(lowerBase, ".sh") ||
+			strings.HasSuffix(lowerBase, ".bat") ||
+			strings.HasSuffix(lowerBase, ".ps1") ||
 			lowerBase == "dockerfile" ||
-			lowerBase == "docker-compose.yml" {
+			strings.HasPrefix(lowerBase, "docker-compose") {
 			http.NotFound(w, r)
 			return
 		}
@@ -66,7 +106,7 @@ func safeFileServer(dir string) http.Handler {
 		}
 
 		// Fallback для навигации без расширения (SPA landing fallback): отдаём index.html
-		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
+		serveIndex(w, r, dir)
 	})
 }
 
@@ -108,10 +148,10 @@ func main() {
 	// 8. Настройка роутинга (Go 1.22+ ServeMux)
 	mux := http.NewServeMux()
 
-	// API эндпоинты
+	// API эндпоинты с защитой Rate Limiter
 	mux.HandleFunc("/api/health", orderHandler.HealthCheck)
 	mux.Handle("/api/order", middleware.RateLimit(orderRateLimiter)(http.HandlerFunc(orderHandler.CreateOrder)))
-	mux.HandleFunc("/api/test-order", orderHandler.SendTestOrder)
+	mux.Handle("/api/test-order", middleware.RateLimit(orderRateLimiter)(http.HandlerFunc(orderHandler.SendTestOrder)))
 
 	// Корректный JSON 404 fallback для любых несуществующих /api/* маршрутов
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {

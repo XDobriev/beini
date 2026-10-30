@@ -48,6 +48,9 @@ func TestConfigLoad_EnvOverrides(t *testing.T) {
 	}
 
 	t.Setenv("PORT", "9090")
+	t.Setenv("IIKO_API_BASE_URL", "https://custom-api.iiko.services")
+	t.Setenv("DELIVERY_CITY", "Магас")
+	t.Setenv("TRANSPORT_TIMEOUT_SEC", "120")
 	t.Setenv("IIKO_API_KEY", "env-key")
 	t.Setenv("TEST_ORDER_TOKEN", "secret-token")
 
@@ -58,6 +61,15 @@ func TestConfigLoad_EnvOverrides(t *testing.T) {
 
 	if cfg.Port != "9090" {
 		t.Errorf("Port = %q; want 9090", cfg.Port)
+	}
+	if cfg.APIBaseURL != "https://custom-api.iiko.services" {
+		t.Errorf("APIBaseURL = %q; want https://custom-api.iiko.services", cfg.APIBaseURL)
+	}
+	if cfg.DeliveryCity != "Магас" {
+		t.Errorf("DeliveryCity = %q; want Магас", cfg.DeliveryCity)
+	}
+	if cfg.TransportToFrontTimeout != 120 {
+		t.Errorf("TransportToFrontTimeout = %d; want 120", cfg.TransportToFrontTimeout)
 	}
 	if cfg.APIKey != "env-key" {
 		t.Errorf("APIKey = %q; want env-key", cfg.APIKey)
@@ -95,4 +107,3 @@ func TestConfigLoad_ErrorWhenMissingBothFileAndEnv(t *testing.T) {
 		t.Error("Load должен вернуть ошибку при отсутствии файла и переменных окружения")
 	}
 }
-

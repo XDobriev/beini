@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -49,6 +50,7 @@ func Load(path string) (*Config, error) {
 
 	cfg := &Config{
 		Port:                    "8080", // Порт по умолчанию
+		APIBaseURL:              "https://api-ru.iiko.services",
 		DeliveryCity:            "Назрань",
 		TransportToFrontTimeout: 60,
 	}
@@ -78,6 +80,17 @@ func Load(path string) (*Config, error) {
 func applyEnv(cfg *Config) {
 	if envPort := os.Getenv("PORT"); envPort != "" {
 		cfg.Port = envPort
+	}
+	if envBaseURL := os.Getenv("IIKO_API_BASE_URL"); envBaseURL != "" {
+		cfg.APIBaseURL = envBaseURL
+	}
+	if envCity := os.Getenv("DELIVERY_CITY"); envCity != "" {
+		cfg.DeliveryCity = envCity
+	}
+	if envTimeout := os.Getenv("TRANSPORT_TIMEOUT_SEC"); envTimeout != "" {
+		if t, err := strconv.Atoi(envTimeout); err == nil && t > 0 {
+			cfg.TransportToFrontTimeout = t
+		}
 	}
 	if envAPIKey := os.Getenv("IIKO_API_KEY"); envAPIKey != "" {
 		cfg.APIKey = envAPIKey

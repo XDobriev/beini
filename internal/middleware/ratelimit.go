@@ -16,13 +16,14 @@ type clientRecord struct {
 
 // RateLimiter реализует алгоритм скользящего окна (sliding window) по IP клиента
 type RateLimiter struct {
-	mu      sync.Mutex
-	clients map[string]*clientRecord
-	limit   int
-	window  time.Duration
+	mu          sync.Mutex
+	clients     map[string]*clientRecord
+	limit       int
+	window      time.Duration
+	stopCleaner chan struct{}
 }
 
-// NewRateLimiter инициализирует ограничитель частоты запросов
+// NewRateLimiter инициализирует ограничитель частоты запросов с автоочисткой устаревших IP
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 	if limit <= 0 {
 		limit = 10
@@ -30,10 +31,55 @@ func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 	if window <= 0 {
 		window = time.Minute
 	}
-	return &RateLimiter{
-		clients: make(map[string]*clientRecord),
-		limit:   limit,
-		window:  window,
+	rl := &RateLimiter{
+		clients:     make(map[string]*clientRecord),
+		limit:       limit,
+		window:      window,
+		stopCleaner: make(chan struct{}),
+	}
+
+	// Фоновый сборщик устаревших записей для предотвращения утечек памяти
+	go func() {
+		ticker := time.NewTicker(2 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				rl.Sweep()
+			case <-rl.stopCleaner:
+				return
+			}
+		}
+	}()
+
+	return rl
+}
+
+// Close останавливает фоновый сборщик мусора
+func (rl *RateLimiter) Close() {
+	select {
+	case <-rl.stopCleaner:
+	default:
+		close(rl.stopCleaner)
+	}
+}
+
+// Sweep удаляет IP-адреса, у которых истекли все временные метки
+func (rl *RateLimiter) Sweep() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	cutoff := time.Now().Add(-rl.window)
+	for ip, rec := range rl.clients {
+		validCount := 0
+		for _, t := range rec.timestamps {
+			if t.After(cutoff) {
+				validCount++
+			}
+		}
+		if validCount == 0 {
+			delete(rl.clients, ip)
+		}
 	}
 }
 
@@ -61,7 +107,6 @@ func (rl *RateLimiter) Allow(ip string) (bool, time.Duration) {
 	rec.timestamps = valid
 
 	if len(rec.timestamps) >= rl.limit {
-		// Время до освобождения самого раннего слота
 		oldest := rec.timestamps[0]
 		retryAfter := oldest.Add(rl.window).Sub(now)
 		if retryAfter < time.Second {
@@ -74,21 +119,28 @@ func (rl *RateLimiter) Allow(ip string) (bool, time.Duration) {
 	return true, 0
 }
 
-// ExtractIP извлекает IP адрес клиента из RemoteAddr
+// ExtractIP извлекает реальный IP адрес клиента с защитой от спуфинга заголовков
 func ExtractIP(r *http.Request) string {
-	// Если настроен заголовок X-Real-IP от локального reverse-proxy (Nginx)
-	if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); xrip != "" {
-		return xrip
-	}
-	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
-		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[0])
-	}
-
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return r.RemoteAddr
+		host = r.RemoteAddr
 	}
+
+	// Доверяем X-Real-IP и X-Forwarded-For ТОЛЬКО если запрос пришел от локального доверенного reverse-proxy (Nginx)
+	remoteIP := net.ParseIP(host)
+	if remoteIP != nil && remoteIP.IsLoopback() {
+		if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); xrip != "" {
+			return xrip
+		}
+		if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
+			parts := strings.Split(xff, ",")
+			first := strings.TrimSpace(parts[0])
+			if first != "" {
+				return first
+			}
+		}
+	}
+
 	return host
 }
 
@@ -116,4 +168,3 @@ func RateLimit(limiter *RateLimiter) func(http.Handler) http.Handler {
 		})
 	}
 }
-

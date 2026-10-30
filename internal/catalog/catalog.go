@@ -108,11 +108,10 @@ func DefaultBeiniCatalog() *MemoryCatalog {
 		{ID: "beini-drink-01", IikoID: "8682b4fc-29fb-4e92-9fd8-ff1d5b632e6e", Name: "Айс кофе с урбечом", Price: 420},
 		{ID: "beini-drink-02", IikoID: "4717da0b-1590-43f8-a00e-b611792ce315", Name: "Бамбл кофе", Price: 410},
 		{ID: "beini-drink-03", IikoID: "0202f964-b181-404a-a90d-52e8b2675878", Name: "Манго-маракуйя лимонад (графин)", Price: 650},
-		{ID: "beini-drink-04", IikoID: "234a164e-d3c9-49e2-8ac8-b9d9de932555-tea", Name: "Облепиха-маракуйя авторский чай", Price: 380},
+		{ID: "beini-drink-04", IikoID: "7d7120be-356d-4ba9-a35d-1bda7da9c2c9", Name: "Облепиха-маракуйя авторский чай", Price: 380},
 
 		// Тестовый Латте и mock-тестовые позиции
 		{ID: "latte", IikoID: "c690faff-db1b-4b51-93cf-f89a461f71a9", Name: "Латте", Price: 250},
 		{ID: "p1", IikoID: "p1", Name: "Тестовое блюдо p1", Price: 590},
 	})
 }
-

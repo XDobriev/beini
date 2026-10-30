@@ -54,4 +54,3 @@ func TestMemoryCatalog_Custom(t *testing.T) {
 		t.Fatalf("ожидалось 100 руб, получено %+v, ok=%v", it, ok)
 	}
 }
-
