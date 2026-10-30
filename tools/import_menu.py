@@ -143,38 +143,35 @@ def fetch_token(config: Dict[str, Any]) -> str:
             "Не задан apiKey iiko. Укажите его в iiko_config.json или через переменную IIKO_API_KEY."
         )
 
-    # Пробуем авторизацию v1 (только apiLogin)
+    # Авторизация iiko API v2 (рекомендуемый протокол iikoCloud)
+    payload_v2 = {
+        'apiLogin': api_key,
+        'appId': app_id,
+        'clientSecret': client_secret
+    }
+    req = urllib.request.Request(
+        f"{base_url}/api/2/access_token",
+        data=json.dumps(payload_v2).encode('utf-8'),
+        headers={'Content-Type': 'application/json'}
+    )
     try:
-        req = urllib.request.Request(
-            f"{base_url}/api/1/access_token",
-            data=json.dumps({'apiLogin': api_key}).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
-        )
         with urllib.request.urlopen(req, timeout=15) as resp:
             token = json.loads(resp.read().decode())['token']
             with open(cache_file, 'w', encoding='utf-8') as cf:
                 json.dump({'token': token, 'ts': time.time()}, cf)
             return token
-    except Exception:
-        # Fallback на v2 (с appId и clientSecret)
-        if not (app_id and client_secret):
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode('utf-8')
+        if e.code == 423:
             raise RuntimeError(
-                "Авторизация iikoCloud v1 отклонена, а учетные данные v2 (appId, clientSecret) не заданы."
-            )
-        req = urllib.request.Request(
-            f"{base_url}/api/2/access_token",
-            data=json.dumps({
-                'apiLogin': api_key,
-                'appId': app_id,
-                'clientSecret': client_secret
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            token = json.loads(resp.read().decode())['token']
-            with open(cache_file, 'w', encoding='utf-8') as cf:
-                json.dump({'token': token, 'ts': time.time()}, cf)
-            return token
+                "HTTP 423 Locked: В iikoWeb истекла лицензия Cloud API для apiLogin ресторана.\n"
+                "Продлите подписку/лицензию в iikoWeb или используйте автономный режим (--from-file <файл>)."
+            ) from e
+        elif e.code == 401:
+            raise RuntimeError(
+                f"HTTP 401 Unauthorized: Проверьте правильность apiLogin, appId и clientSecret в iiko_config.json.\nОтвет: {err_body}"
+            ) from e
+        raise RuntimeError(f"HTTP {e.code} при авторизации в iikoCloud: {err_body}") from e
 
 
 def fetch_live_nomenclature(config: Dict[str, Any]) -> Dict[str, Any]:

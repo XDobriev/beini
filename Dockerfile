@@ -32,6 +32,7 @@ COPY index.html demo.html ./
 COPY assets/ ./assets/
 COPY css/ ./css/
 COPY js/ ./js/
+COPY data/ ./data/
 
 EXPOSE 8080
 
