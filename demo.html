@@ -11,14 +11,14 @@
 <body>
   <main class="container" style="max-width:640px;padding-top:48px;padding-bottom:48px">
     <h1 class="h2" style="font-size:42px;margin-bottom:12px">Проверка связи с кассой</h1>
-    <p class="lead" style="margin-bottom:24px">Служебная страница. Тестовый заказ на 0 ₽ уходит на кассу iikoFront: на терминале появится карточка «ТЕСТ САЙТА» во вкладке «Доставка». Потом заказ нужно отменить на кассе (причина: тестирование).</p>
+    <p class="lead" style="margin-bottom:24px">Служебная страница. Тестовый заказ (Латте) уходит на кассу iikoFront: на терминале появится карточка с комментарием «Тестовый заказ, не готовить» во вкладке «Доставка». Потом заказ нужно отменить на кассе (причина: тестирование).</p>
 
     <div class="fields" style="margin-bottom:16px">
       <input class="input" id="token" type="password" placeholder="Токен теста (если задан на сервере)" autocomplete="off">
     </div>
     <div style="display:grid;gap:10px;grid-template-columns:1fr 1fr">
       <button type="button" class="btn btn-line" id="btn-health">Проверить сервер</button>
-      <button type="button" class="btn btn-ink" id="btn-test">Отправить тестовый заказ</button>
+      <button type="button" class="btn btn-ink" id="btn-test">Отправить заказ (Латте)</button>
     </div>
     <pre id="out" style="margin-top:24px;padding:16px;background:var(--bg-alt);border-radius:6px;font-size:13px;white-space:pre-wrap;word-break:break-word;min-height:80px">Результат появится здесь.</pre>
   </main>
@@ -30,7 +30,7 @@
       catch (e) { show('Сервер недоступен', String(e)); }
     };
     document.getElementById('btn-test').onclick = async (ev) => {
-      if (!confirm('Отправить тестовый заказ на 0 ₽ на кассу ресторана?')) return;
+      if (!confirm('Отправить тестовый заказ (Латте) на кассу ресторана?')) return;
       const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Отправляем…';
       try {
         const headers = {}; const t = document.getElementById('token').value.trim();

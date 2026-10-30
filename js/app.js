@@ -13,14 +13,42 @@
   const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const REELS = ['reel_10', 'reel_11', 'reel_12', 'reel_13', 'reel_15', 'reel_17'];
 
-  const menu = MENU_DATA.slice().sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category));
+  // Валидация требований к отображаемым блюдам: iiko ID, цена > 0, категория, существующая картинка
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function isValidDish(dish, cat) {
+    if (!dish || typeof dish !== 'object') return false;
+    // 1. iiko ID: обязателен и строго формата UUID v4
+    if (!dish.iikoId || typeof dish.iikoId !== 'string' || !UUID_RE.test(dish.iikoId.trim())) return false;
+    // 2. Цена: число строго больше 0
+    if (typeof dish.price !== 'number' || isNaN(dish.price) || dish.price <= 0) return false;
+    // 3. Категория: должна входить в допустимый список CAT_ORDER
+    const dishCat = cat || dish.category;
+    if (!dishCat || !CAT_ORDER.includes(dishCat)) return false;
+    // 4. Картинка: обязательна непустая строка пути
+    if (!dish.image || typeof dish.image !== 'string' || dish.image.trim() === '') return false;
+    return true;
+  }
+
+  const rawMenu = (typeof MENU_DATA !== 'undefined' && Array.isArray(MENU_DATA)) ? MENU_DATA : [];
+  const menu = rawMenu
+    .filter(c => c && CAT_ORDER.includes(c.category) && Array.isArray(c.items))
+    .map(c => ({
+      ...c,
+      items: c.items.filter(i => isValidDish(i, c.category))
+    }))
+    .filter(c => c.items.length > 0)
+    .sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category));
+
   const dishes = {};
-  menu.forEach(c => c.items.forEach(i => { dishes[i.id] = i; }));
+  menu.forEach(c => c.items.forEach(i => {
+    if (!i.category) i.category = c.category;
+    dishes[i.id] = i;
+  }));
 
   const state = {
     cart: loadCart(),
     orderType: 'delivery', // delivery | pickup
-    active: menu[0].category,
+    active: menu[0] ? menu[0].category : CAT_ORDER[0],
     sheetOpen: false,
     orderStatus: 'idle', // idle | sending | success | error
     orderError: '',
@@ -86,7 +114,7 @@
         <h3 class="h3">${esc(CAT_NAMES[c.category] || c.categoryName)}</h3>
         ${c.items.map(i => `
           <article class="dish">
-            <img src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy" width="112" height="112">
+            <img src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy" width="112" height="112" onerror="this.onerror=null;this.classList.add('img-fallback');">
             <div class="dish-body">
               ${i.badge ? `<div class="dish-badge">${esc(i.badge)}</div>` : ''}
               <div class="dish-name">${esc(i.name)}</div>
@@ -339,11 +367,22 @@
       deliveryType: state.orderType,
       address: state.orderType === 'delivery' ? state.form.address : '',
       comment: 'Заказ с сайта',
-      items: lines.map(l => ({ productId: l.dish.iikoId, name: l.dish.name, price: l.dish.price, amount: l.qty }))
+      items: lines.map(l => ({ productId: l.dish.iikoId, amount: l.qty }))
     };
 
+    const idempotencyKey = (window.crypto && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : 'order-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
+
     try {
-      const res = await fetch('/api/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await fetch('/api/order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey
+        },
+        body: JSON.stringify(payload)
+      });
       let data = {};
       try { data = await res.json(); } catch (e) { /* не JSON */ }
       if (!res.ok || !data.success) throw new Error(data.error || 'Не удалось отправить заказ');
