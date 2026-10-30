@@ -14,8 +14,9 @@ type AccessTokenResponse struct {
 
 // IikoCustomer описание гостя в заказе
 type IikoCustomer struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Comment string `json:"comment,omitempty"`
 }
 
 // IikoStreet описание улицы в адресе доставки
@@ -43,6 +44,7 @@ type IikoOrderItem struct {
 	Price     float64 `json:"price"`
 	Type      string  `json:"type"` // "Product"
 	Amount    int     `json:"amount"`
+	Comment   string  `json:"comment,omitempty"`
 }
 
 // IikoPayment информация об оплате

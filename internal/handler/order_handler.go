@@ -7,77 +7,179 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
+	"beini-backend/internal/catalog"
 	"beini-backend/internal/domain"
+	"beini-backend/internal/idempotency"
 	"beini-backend/internal/iiko"
 )
 
+// MaxOrderBodyBytes — максимальный размер JSON тела запроса оформления заказа (32 КБ)
+const MaxOrderBodyBytes = 32 * 1024
+
 // OrderHandler обрабатывает HTTP-запросы оформления заказов
 type OrderHandler struct {
-	iikoClient *iiko.Client
-	logger     *slog.Logger
-	testToken  string
+	iikoClient       *iiko.Client
+	logger           *slog.Logger
+	testToken        string
+	catalog          catalog.Catalog
+	idempotencyStore *idempotency.Store
 }
 
-// NewOrderHandler инициализирует OrderHandler.
-// testToken защищает /api/test-order; пустой — тест доступен только с localhost.
+// NewOrderHandler инициализирует OrderHandler с дефолтным каталогом и хранилищем идемпотентности
 func NewOrderHandler(client *iiko.Client, logger *slog.Logger, testToken string) *OrderHandler {
+	return NewOrderHandlerWithDeps(client, logger, testToken, nil, nil)
+}
+
+// NewOrderHandlerWithDeps инициализирует OrderHandler с явными зависимостями для внедрения и тестирования
+func NewOrderHandlerWithDeps(
+	client *iiko.Client,
+	logger *slog.Logger,
+	testToken string,
+	cat catalog.Catalog,
+	store *idempotency.Store,
+) *OrderHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	if cat == nil {
+		cat = catalog.DefaultBeiniCatalog()
+	}
+	if store == nil {
+		store = idempotency.NewStore(15 * time.Minute)
+	}
 	return &OrderHandler{
-		iikoClient: client,
-		logger:     logger,
-		testToken:  testToken,
+		iikoClient:       client,
+		logger:           logger,
+		testToken:        testToken,
+		catalog:          cat,
+		idempotencyStore: store,
 	}
 }
 
-// CreateOrder обрабатывает POST /api/order
+// CreateOrder обрабатывает POST /api/order с валидацией, серверным расчетом цен и идемпотентностью
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.sendError(w, http.StatusMethodNotAllowed, "Разрешен только метод POST")
 		return
 	}
 
+	// 1. Проверка Idempotency Key (защита от повторной отправки)
+	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if idempotencyKey == "" {
+		idempotencyKey = strings.TrimSpace(r.Header.Get("X-Idempotency-Key"))
+	}
+
+	var completeIdemp func(code int, header http.Header, body []byte)
+	if idempotencyKey != "" {
+		cached, complete, release, err := h.idempotencyStore.Lock(idempotencyKey)
+		if err != nil {
+			if errors.Is(err, idempotency.ErrConflict) {
+				h.sendError(w, http.StatusConflict, "Заказ с данным ключом идемпотентности уже обрабатывается")
+				return
+			}
+			h.sendError(w, http.StatusBadRequest, "Некорректный ключ идемпотентности (от 1 до 128 символов)")
+			return
+		}
+
+		// Если ответ уже был успешно сформирован ранее — возвращаем кэшированный результат
+		if cached != nil {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("X-Cache-Lookup", "HIT")
+			w.WriteHeader(cached.StatusCode)
+			_, _ = w.Write(cached.Body)
+			return
+		}
+
+		defer release()
+		completeIdemp = complete
+	}
+
+	// 2. Ограничение размера тела запроса (32 КБ) для предотвращения DoS-атак
+	r.Body = http.MaxBytesReader(w, r.Body, MaxOrderBodyBytes)
+
+	// 3. Декодирование JSON структуры
 	var order domain.Order
-	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&order); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			h.logger.Warn("превышен максимальный размер тела заказа", "limit", MaxOrderBodyBytes)
+			h.sendError(w, http.StatusRequestEntityTooLarge, "Превышен максимальный размер тела запроса (32 КБ)")
+			return
+		}
 		h.logger.Warn("ошибка декодирования тела заказа", "error", err)
-		h.sendError(w, http.StatusBadRequest, "Некорректный JSON формат заказа: "+err.Error())
+		h.sendError(w, http.StatusBadRequest, "Некорректный формат данных заказа")
 		return
 	}
 
-	if err := order.Validate(); err != nil {
+	// 4. Сверка с серверным каталогом: сервер принимает ТОЛЬКО productId и количество,
+	// полностью игнорируя присланные браузером price, name или sum, и вычисляет цену сам
+	if err := order.ResolveAndVerifyPrices(h.catalog); err != nil {
+		h.logger.Warn("ошибка сверки позиций заказа с каталогом", "error", err)
 		h.sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	// 5. Валидация доменных полей (телефон, адрес, ограничения длин)
+	if err := order.Validate(); err != nil {
+		h.logger.Warn("валидация заказа не пройдена", "error", err)
+		h.sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// 6. Отправка проверенного заказа на кассу ресторана через iiko
 	res, err := h.iikoClient.CreateDeliveryOrder(r.Context(), &order)
 	if err != nil {
 		h.handleOrderError(w, err)
 		return
 	}
 
-	h.sendJSON(w, http.StatusOK, map[string]any{
+	respData := map[string]any{
 		"success":        true,
 		"correlationId":  res.CorrelationID,
 		"creationStatus": res.OrderInfo.CreationStatus,
 		// pending — касса ещё не подтвердила приём; заказ сохранён и будет передан
 		"pending":   res.OrderInfo.CreationStatus != iiko.StatusSuccess,
+		"totalSum":  order.TotalSum(),
 		"orderInfo": res.OrderInfo,
-	})
+	}
+
+	bodyBytes, err := json.Marshal(respData)
+	if err != nil {
+		h.logger.Error("ошибка маршалинга ответа заказа", "error", err)
+		h.sendError(w, http.StatusInternalServerError, "Ошибка формирования ответа")
+		return
+	}
+
+	// Фиксируем результат для идемпотентности
+	if completeIdemp != nil {
+		respHeader := make(http.Header)
+		respHeader.Set("Content-Type", "application/json; charset=utf-8")
+		completeIdemp(http.StatusOK, respHeader, bodyBytes)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(bodyBytes)
 }
 
-// handleOrderError переводит ошибку клиента iiko в HTTP-ответ
+// handleOrderError безопасно переводит ошибку клиента iiko в HTTP-ответ без раскрытия внутренних секретов
 func (h *OrderHandler) handleOrderError(w http.ResponseWriter, err error) {
 	var orderErr *iiko.OrderError
 	if errors.As(err, &orderErr) {
-		h.logger.Error("касса отклонила заказ", "error", err)
-		h.sendError(w, http.StatusUnprocessableEntity, "Касса не приняла заказ: "+orderErr.Error())
+		h.logger.Error("касса отклонила заказ",
+			"status", orderErr.Status,
+		)
+		h.sendError(w, http.StatusUnprocessableEntity, "Касса ресторана не смогла принять заказ. Пожалуйста, оформите заказ по телефону")
 		return
 	}
+
+	// Логируем на сервере без вывода секретов в тело клиенту
 	h.logger.Error("ошибка передачи заказа в iikoCloud", "error", err)
-	h.sendError(w, http.StatusBadGateway, "Не удалось передать заказ в кассу")
+	h.sendError(w, http.StatusBadGateway, "Не удалось передать заказ в кассу ресторана")
 }
 
 // testAllowed разрешает тестовый заказ по токену либо только с localhost
@@ -137,7 +239,7 @@ func (h *OrderHandler) sendJSON(w http.ResponseWriter, statusCode int, data any)
 	_ = json.NewEncoder(w).Encode(data)
 }
 
-// sendError возвращает стандартный JSON с ошибкой
+// sendError возвращает безопасный стандартный JSON с ошибкой
 func (h *OrderHandler) sendError(w http.ResponseWriter, statusCode int, message string) {
 	h.sendJSON(w, statusCode, map[string]any{
 		"success": false,

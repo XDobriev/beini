@@ -37,7 +37,7 @@ func main() {
 		fmt.Printf("Ошибка получения токена: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("✓ Токен получен: %s... (длина: %d симв.)\n", token[:20], len(token))
+	fmt.Printf("✓ Токен получен (длина: %d симв.)\n", len(token))
 
 	fmt.Printf("\n2. Отправка заказа на кассу ресторана (терминал: %s)...\n", cfg.TerminalGroupID)
 	res, err := client.SendTestOrder(ctx)

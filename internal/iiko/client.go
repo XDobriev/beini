@@ -125,6 +125,7 @@ func (c *Client) CreateDeliveryOrder(ctx context.Context, order *domain.Order) (
 			Price:     it.Price,
 			Type:      "Product",
 			Amount:    it.Amount,
+			Comment:   order.Comment,
 		})
 	}
 
@@ -157,7 +158,7 @@ func (c *Client) CreateDeliveryOrder(ctx context.Context, order *domain.Order) (
 		Order: IikoOrder{
 			Phone:         order.Phone,
 			OrderTypeID:   orderTypeID,
-			Customer:      IikoCustomer{Name: customerName, Type: "regular"},
+			Customer:      IikoCustomer{Name: customerName, Type: "regular", Comment: order.Comment},
 			DeliveryPoint: deliveryPoint,
 			Items:         iikoItems,
 			Payments: []IikoPayment{
@@ -249,18 +250,18 @@ func (c *Client) getOrderInfo(ctx context.Context, orderID string) (*OrderInfo, 
 	return &resp.Orders[0], nil
 }
 
-// SendTestOrder отправляет тестовый заказ самовывоза на 0 ₽ для живой проверки в ресторане
+// SendTestOrder отправляет тестовый заказ самовывоза для живой проверки в ресторане
 func (c *Client) SendTestOrder(ctx context.Context) (*CreateDeliveryResponse, error) {
 	testOrder := &domain.Order{
-		CustomerName: "ТЕСТ САЙТА (Хамзат)",
+		CustomerName: "Хамзат",
 		Phone:        "+79204827777",
 		DeliveryType: domain.DeliveryPickUp,
-		Comment:      "★ ТЕСТОВЫЙ ЗАКАЗ С САЙТА ★ Проверка связки сайта и кассы iikoFront. Не готовить!",
+		Comment:      "Тестовый заказ, не готовить",
 		Items: []domain.OrderItem{
 			{
-				ProductID: "04583ff0-44e7-4c5d-8476-fd549af5457f", // Турецкий кофе из номенклатуры BEINI
-				Name:      "Турецкий кофе (Тест)",
-				Price:     0,
+				ProductID: "c690faff-db1b-4b51-93cf-f89a461f71a9", // Латте из номенклатуры BEINI
+				Name:      "Латте",
+				Price:     250,
 				Amount:    1,
 			},
 		},
