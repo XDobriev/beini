@@ -57,6 +57,7 @@ type IikoPayment struct {
 
 // IikoOrder внутренняя структура заказа iiko
 type IikoOrder struct {
+	ID            string             `json:"id,omitempty"`
 	Phone         string             `json:"phone"`
 	OrderTypeID   string             `json:"orderTypeId"`
 	Customer      IikoCustomer       `json:"customer"`

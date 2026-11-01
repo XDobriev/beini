@@ -8,6 +8,8 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+from urllib.error import URLError
 from pathlib import Path
 
 # Добавляем tools/ в sys.path для прямого импорта
@@ -15,6 +17,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from import_menu import (
     ALLOWED_CATEGORIES,
+    apply_reconciliation,
+    product_price,
+    fetch_live_stop_lists,
+    parse_stop_lists,
     audit_catalog,
     export_js_menu_data,
     reconcile_menu,
@@ -23,6 +29,19 @@ from import_menu import (
 
 
 class TestMenuImport(unittest.TestCase):
+
+    def test_official_sale_flags(self):
+        product = {
+            'type': 'dish', 'isDeleted': False, 'useBalanceForSell': False,
+            'canSetOpenPrice': False, 'orderItemType': 'Product',
+            'sizePrices': [{'sizeId': None, 'price': {'currentPrice': 620, 'isIncludedInMenu': True}}]
+        }
+        self.assertEqual(product_price(product), 620)
+        for field in ('useBalanceForSell', 'canSetOpenPrice'):
+            self.assertEqual(product_price(dict(product, **{field: True})), 0)
+        self.assertEqual(product_price(dict(product, orderItemType='Compound')), 0)
+        del product['useBalanceForSell']
+        self.assertEqual(product_price(product), 0)
 
     def setUp(self):
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -136,25 +155,28 @@ class TestMenuImport(unittest.TestCase):
                     'id': '0ce65922-6a9f-453a-bb92-b7c35b4950bb',
                     'name': 'Люля-кебаб из телятины',
                     'isDeleted': False,
-                    'type': 'Dish',
-                    'sizePrices': [{'price': {'currentPrice': 620.0}}]
+                    'type': 'dish',
+                    'useBalanceForSell': False, 'canSetOpenPrice': False,
+                    'sizePrices': [{'price': {'currentPrice': 620.0, 'isIncludedInMenu': True}}]
                 },
                 # Удаленное блюдо
                 {
                     'id': '11111111-2222-3333-4444-555555555555',
                     'name': 'Удаленное блюдо',
                     'isDeleted': True,
-                    'type': 'Dish',
-                    'sizePrices': [{'price': {'currentPrice': 400.0}}]
+                    'type': 'dish',
+                    'useBalanceForSell': False, 'canSetOpenPrice': False,
+                    'sizePrices': [{'price': {'currentPrice': 400.0, 'isIncludedInMenu': True}}]
                 },
                 # Новое блюдо в iiko
                 {
                     'id': '99999999-8888-7777-6666-555555555555',
                     'name': 'Новое блюдо от шефа',
                     'isDeleted': False,
-                    'type': 'Dish',
+                    'type': 'dish',
+                    'useBalanceForSell': False, 'canSetOpenPrice': False,
                     'parentGroup': 'grp-1',
-                    'sizePrices': [{'price': {'currentPrice': 750.0}}]
+                    'sizePrices': [{'price': {'currentPrice': 750.0, 'isIncludedInMenu': True}}]
                 }
             ],
             'groups': [{'id': 'grp-1', 'name': 'Мангал'}],
@@ -182,6 +204,83 @@ class TestMenuImport(unittest.TestCase):
         self.assertEqual(len(res['priceChanged']), 1)
         self.assertEqual(res['priceChanged'][0]['oldPrice'], 590)
         self.assertEqual(res['priceChanged'][0]['newPrice'], 620.0)
+
+    def fixtures(self):
+        root = Path(__file__).resolve().parents[1] / 'internal' / 'menusync' / 'testdata'
+        return (json.loads((root / 'nomenclature.json').read_text(encoding='utf-8')),
+                json.loads((root / 'stop_lists.json').read_text(encoding='utf-8')))
+
+    def test_stop_list_terminal_scope_and_explicit_empty(self):
+        _, stops = self.fixtures()
+        first = '11111111-1111-4111-8111-111111111111'
+        self.assertEqual(parse_stop_lists(stops, 'org', 'terminal'), {first})
+        self.assertNotIn(first, parse_stop_lists(stops, 'org', 'other'))
+        stops['terminalGroupStopLists'][0]['items'][1]['items'] = []
+        self.assertEqual(parse_stop_lists(stops, 'org', 'terminal'), set())
+
+    def test_invalid_stop_list_never_becomes_empty(self):
+        for bad in ({}, {'terminalGroupStopLists': []}, {'errorCode': 'failure'},
+                    {'terminalGroupStopLists': None}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                parse_stop_lists(bad, 'org', 'terminal')
+        _, stops = self.fixtures()
+        stops['terminalGroupStopLists'][0]['items'][1]['items'] = None
+        with self.assertRaises(ValueError):
+            parse_stop_lists(stops, 'org', 'terminal')
+        with self.assertRaises(ValueError):
+            parse_stop_lists(stops, 'org', '')
+
+    def test_stop_list_network_error_propagates(self):
+        with patch('import_menu.fetch_token', return_value='fixture-token'), \
+                patch('import_menu.urllib.request.urlopen', side_effect=URLError('offline')):
+            with self.assertRaises(URLError):
+                fetch_live_stop_lists({'organizationId': 'org', 'terminalGroupId': 'terminal'})
+        with self.assertRaises(ValueError):
+            fetch_live_stop_lists({'organizationId': 'org'})
+
+    def test_apply_preserves_media_and_exclusions(self):
+        nomenclature, stops = self.fixtures()
+        dish = dict(self.valid_dish, iikoId='11111111-1111-4111-8111-111111111111')
+        excluded = dict(self.valid_dish, id='excluded', available=False,
+                        iikoId='22222222-2222-4222-8222-222222222222')
+        local = {'items': [dish, excluded], 'categories': [{'id': 'grill'}]}
+        result = apply_reconciliation(local, nomenclature, set())
+        self.assertEqual(len(result['items']), 2)  # no automatic new positions
+        self.assertEqual(result['items'][0]['price'], 620)
+        for field in ('name', 'description', 'image', 'weight', 'badge', 'isHalal'):
+            self.assertEqual(result['items'][0][field], dish[field])
+        self.assertFalse(result['items'][1]['available'])
+        self.assertEqual(local['items'][0]['price'], 590)  # no in-place mutation
+        result = apply_reconciliation(local, nomenclature, parse_stop_lists(stops, 'org', 'terminal'))
+        self.assertFalse(result['items'][0]['available'])
+        result = apply_reconciliation(result, nomenclature, None)
+        self.assertFalse(result['items'][0]['available'])  # unknown stop-list cannot restore
+        report = reconcile_menu(local, nomenclature, None, self.root)
+        self.assertFalse(report['stopListKnown'])
+
+    def test_removed_zero_sized_and_malformed_menu(self):
+        nomenclature, _ = self.fixtures()
+        dish = dict(self.valid_dish, iikoId='11111111-1111-4111-8111-111111111111')
+        for kind in ('removed', 'zero', 'sized', 'modifier'):
+            data = json.loads(json.dumps(nomenclature))
+            p = data['products'][0]
+            if kind == 'removed':
+                p['isDeleted'] = True
+            elif kind == 'zero':
+                p['sizePrices'][0]['price']['currentPrice'] = 0
+            elif kind == 'sized':
+                p['sizePrices'][0]['sizeId'] = 'size'
+            else:
+                p['modifiers'] = [{'minAmount': 1}]
+            result = apply_reconciliation({'items': [dish]}, data, set())
+            self.assertFalse(result['items'][0]['available'])
+        for bad in ({}, {'products': []}, {'products': [{}]}):
+            with self.assertRaises(ValueError):
+                apply_reconciliation({'items': [dish]}, bad, set())
+        nomenclature['products'][0]['sizePrices'][0]['price']['currentPrice'] = float('nan')
+        with self.assertRaises(ValueError):
+            apply_reconciliation({'items': [dish]}, nomenclature, set())
+
 
     def test_export_js_menu_data(self):
         catalog = {

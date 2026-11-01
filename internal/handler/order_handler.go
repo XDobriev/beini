@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"crypto/sha256"
+	"bytes"
+	"context"
 	"crypto/subtle"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,12 +11,14 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"beini-backend/internal/catalog"
 	"beini-backend/internal/domain"
 	"beini-backend/internal/idempotency"
 	"beini-backend/internal/iiko"
+	"beini-backend/internal/orderstate"
 )
 
 // MaxOrderBodyBytes — максимальный размер JSON тела запроса оформления заказа (32 КБ)
@@ -24,11 +26,16 @@ const MaxOrderBodyBytes = 32 * 1024
 
 // OrderHandler обрабатывает HTTP-запросы оформления заказов
 type OrderHandler struct {
-	iikoClient       *iiko.Client
-	logger           *slog.Logger
-	testToken        string
-	catalog          catalog.Catalog
-	idempotencyStore *idempotency.Store
+	iikoClient *iiko.Client
+	logger     *slog.Logger
+	testToken  string
+	catalog    catalog.Catalog
+	states     *orderstate.Store
+	ctx        context.Context
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
+	lifeMu     sync.Mutex
+	closing    bool
 }
 
 // NewOrderHandler инициализирует OrderHandler с дефолтным каталогом и хранилищем идемпотентности
@@ -44,22 +51,51 @@ func NewOrderHandlerWithDeps(
 	cat catalog.Catalog,
 	store *idempotency.Store,
 ) *OrderHandler {
+	if store == nil {
+		return NewOrderHandlerWithState(client, logger, testToken, cat, orderstate.NewMemory())
+	}
+	return NewOrderHandlerWithState(client, logger, testToken, cat, store.Orders())
+}
+
+// NewOrderHandlerWithState запускает опрос сохранённых pending. Файловым Store
+// владеет интегратор: сначала Close handler, затем Close Store.
+func NewOrderHandlerWithState(client *iiko.Client, logger *slog.Logger, testToken string, cat catalog.Catalog, states *orderstate.Store) *OrderHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	if cat == nil {
 		cat = catalog.DefaultBeiniCatalog()
 	}
-	if store == nil {
-		store = idempotency.NewStore(15 * time.Minute)
+	if states == nil {
+		states = orderstate.NewMemory()
 	}
-	return &OrderHandler{
-		iikoClient:       client,
-		logger:           logger,
-		testToken:        testToken,
-		catalog:          cat,
-		idempotencyStore: store,
+	ctx, cancel := context.WithCancel(context.Background())
+	h := &OrderHandler{iikoClient: client, logger: logger, testToken: testToken, catalog: cat, states: states, ctx: ctx, cancel: cancel}
+	h.wg.Add(1)
+	go func() {
+		defer h.wg.Done()
+		h.track(ctx)
+	}()
+	return h
+}
+
+// Close останавливает worker и ждёт незавершённых create; Store не закрывает.
+func (h *OrderHandler) Close() {
+	h.lifeMu.Lock()
+	h.closing = true
+	h.cancel()
+	h.lifeMu.Unlock()
+	h.wg.Wait()
+}
+
+func (h *OrderHandler) beginWork() bool {
+	h.lifeMu.Lock()
+	defer h.lifeMu.Unlock()
+	if h.closing {
+		return false
 	}
+	h.wg.Add(1)
+	return true
 }
 
 // CreateOrder обрабатывает POST /api/order с валидацией, серверным расчетом цен и идемпотентностью
@@ -91,43 +127,37 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Вычисление отпечатка полезной нагрузки (SHA-256)
-	sum := sha256.Sum256(rawBody)
-	payloadHash := hex.EncodeToString(sum[:])
-
-	// 4. Проверка Idempotency Key (защита от повторной отправки по RFC 9651)
-	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
-	if idempotencyKey == "" {
-		idempotencyKey = strings.TrimSpace(r.Header.Get("X-Idempotency-Key"))
-	}
-
-	var completeIdemp func(code int, header http.Header, body []byte)
-	if idempotencyKey != "" {
-		cached, complete, release, err := h.idempotencyStore.Lock(idempotencyKey, payloadHash)
+	payloadHash := orderstate.Hash(rawBody)
+	key := requestKey(r)
+	if key == "" {
+		key, err = orderstate.NewID()
 		if err != nil {
-			if errors.Is(err, idempotency.ErrConflict) {
-				h.sendError(w, http.StatusConflict, "Заказ с данным ключом идемпотентности уже обрабатывается")
-				return
-			}
-			if errors.Is(err, idempotency.ErrPayloadMismatch) {
-				h.sendError(w, http.StatusUnprocessableEntity, "Ключ идемпотентности уже использован для другого заказа")
-				return
-			}
-			h.sendError(w, http.StatusBadRequest, "Некорректный ключ идемпотентности (от 1 до 128 символов)")
+			h.sendError(w, http.StatusServiceUnavailable, "Не удалось выделить ключ заказа")
 			return
 		}
-
-		// Если ответ уже был успешно сформирован ранее — возвращаем кэшированный результат
-		if cached != nil {
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			w.Header().Set("X-Cache-Lookup", "HIT")
-			w.WriteHeader(cached.StatusCode)
-			_, _ = w.Write(cached.Body)
+	}
+	if err := idempotency.ValidateKey(key); err != nil {
+		h.sendError(w, http.StatusBadRequest, "Некорректный ключ идемпотентности (от 1 до 128 символов)")
+		return
+	}
+	w.Header().Set("Idempotency-Key", key)
+	if !h.beginWork() {
+		h.stateError(w)
+		return
+	}
+	defer h.wg.Done()
+	// Повтор не зависит от актуального меню: возвращаем уже сохранённую попытку.
+	if rec, exists, err := h.states.Lookup(key); err != nil {
+		h.stateError(w)
+		return
+	} else if exists {
+		if rec.PayloadHash != payloadHash {
+			h.payloadMismatch(w)
 			return
 		}
-
-		defer release()
-		completeIdemp = complete
+		w.Header().Set("X-Cache-Lookup", "HIT")
+		h.sendOrderState(w, rec)
+		return
 	}
 
 	// 5. Декодирование JSON структуры
@@ -140,7 +170,12 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	// 6. Сверка с серверным каталогом: сервер принимает ТОЛЬКО productId и количество,
 	// полностью игнорируя присланные браузером price, name или sum, и вычисляет цену сам
-	if err := order.ResolveAndVerifyPrices(h.catalog); err != nil {
+	cat := h.catalog
+	_, dynamic := cat.(interface{ Pin() catalog.Catalog })
+	if p, ok := cat.(interface{ Pin() catalog.Catalog }); ok {
+		cat = p.Pin()
+	}
+	if err := order.ResolveAndVerifyPrices(cat); err != nil {
 		h.logger.Warn("ошибка сверки позиций заказа с каталогом", "error", err)
 		h.sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -153,56 +188,69 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 8. Отправка проверенного заказа на кассу ресторана через iiko
-	res, err := h.iikoClient.CreateDeliveryOrder(r.Context(), &order)
+	// Ожидаемые цены служат только согласием гостя, расчёт всегда серверный.
+	// Проверяем каждую строку: одинаковый итог не скрывает изменение двух цен.
+	var expected struct {
+		ExpectedPrices []float64 `json:"expectedPrices"`
+	}
+	_ = json.Unmarshal(rawBody, &expected)
+	if dynamic || expected.ExpectedPrices != nil {
+		match := len(expected.ExpectedPrices) == len(order.Items)
+		for i, item := range order.Items {
+			if i >= len(expected.ExpectedPrices) || expected.ExpectedPrices[i] != item.Price {
+				match = false
+			}
+		}
+		if !match {
+			w.Header().Set("Cache-Control", "no-store")
+			h.sendJSON(w, http.StatusConflict, map[string]any{
+				"success": false, "code": "price_changed",
+				"error": "Цены изменились. Подтвердите обновлённый состав и сумму заказа.",
+				"items": order.Items, "totalSum": order.TotalSum(),
+			})
+			return // До Reserve/create: это ещё не попытка отправки в кассу.
+		}
+	}
+
+	source, err := json.Marshal(order)
 	if err != nil {
-		h.handleOrderError(w, err)
+		h.stateError(w)
 		return
 	}
-
-	respData := map[string]any{
-		"success":        true,
-		"correlationId":  res.CorrelationID,
-		"creationStatus": res.OrderInfo.CreationStatus,
-		// pending — касса ещё не подтвердила приём; заказ сохранён и будет передан
-		"pending":   res.OrderInfo.CreationStatus != iiko.StatusSuccess,
-		"totalSum":  order.TotalSum(),
-		"orderInfo": res.OrderInfo,
+	rec, fresh, err := h.states.ReserveWithNotification(key, payloadHash, order.TotalSum(), string(source))
+	if errors.Is(err, orderstate.ErrMismatch) {
+		h.payloadMismatch(w)
+		return
 	}
-
-	bodyBytes, err := json.Marshal(respData)
 	if err != nil {
-		h.logger.Error("ошибка маршалинга ответа заказа", "error", err)
-		h.sendError(w, http.StatusInternalServerError, "Ошибка формирования ответа")
+		h.logger.Error("не удалось сохранить попытку заказа", "error", err)
+		h.stateError(w)
 		return
 	}
-
-	// Фиксируем результат для идемпотентности
-	if completeIdemp != nil {
-		respHeader := make(http.Header)
-		respHeader.Set("Content-Type", "application/json; charset=utf-8")
-		completeIdemp(http.StatusOK, respHeader, bodyBytes)
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(bodyBytes)
-}
-
-// handleOrderError безопасно переводит ошибку клиента iiko в HTTP-ответ без раскрытия внутренних секретов
-func (h *OrderHandler) handleOrderError(w http.ResponseWriter, err error) {
-	var orderErr *iiko.OrderError
-	if errors.As(err, &orderErr) {
-		h.logger.Error("касса отклонила заказ",
-			"status", orderErr.Status,
-		)
-		h.sendError(w, http.StatusUnprocessableEntity, "Касса ресторана не смогла принять заказ. Пожалуйста, оформите заказ по телефону")
+	if !fresh {
+		w.Header().Set("X-Cache-Lookup", "HIT")
+		h.sendOrderState(w, rec)
 		return
 	}
+	defer h.states.Release(rec)
 
-	// Логируем на сервере без вывода секретов в тело клиенту
-	h.logger.Error("ошибка передачи заказа в iikoCloud", "error", err)
-	h.sendError(w, http.StatusBadGateway, "Не удалось передать заказ в кассу ресторана")
+	// HTTP disconnect не отменяет создание; остановка handler и отдельный timeout
+	// ограничивают запрос. Запись уже на диске, поэтому новый create невозможен.
+	ctx, cancel := context.WithTimeout(h.ctx, 35*time.Second)
+	defer cancel()
+	res, err := h.iikoClient.SubmitDeliveryOrder(ctx, &order, rec.IikoID)
+	if err != nil {
+		h.logger.Warn("результат создания заказа неизвестен", "orderId", rec.ID, "error", err)
+	} else {
+		rec.CorrelationID = res.CorrelationID
+		applyOrderInfo(&rec, res.OrderInfo)
+		if err := h.states.Update(rec); err != nil {
+			h.logger.Error("не удалось сохранить результат заказа", "orderId", rec.ID, "error", err)
+			h.stateError(w)
+			return
+		}
+	}
+	h.sendOrderState(w, rec)
 }
 
 // testAllowed разрешает тестовый заказ по токену либо только с прямого localhost без проксирования
@@ -234,20 +282,22 @@ func (h *OrderHandler) SendTestOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("запуск тестового заказа через API")
-	res, err := h.iikoClient.SendTestOrder(r.Context())
-	if err != nil {
-		h.handleOrderError(w, err)
+	if _, dynamic := h.catalog.(interface{ Pin() catalog.Catalog }); dynamic {
+		h.sendError(w, http.StatusServiceUnavailable, "Тестовый заказ не настроен для синхронизированного меню")
 		return
 	}
 
-	h.sendJSON(w, http.StatusOK, map[string]any{
-		"success":        true,
-		"message":        "Тестовый заказ отправлен на терминал",
-		"correlationId":  res.CorrelationID,
-		"creationStatus": res.OrderInfo.CreationStatus,
-		"orderInfo":      res.OrderInfo,
+	// Диагностический маршрут использует тот же журнал и правила повторов.
+	payload, _ := json.Marshal(domain.Order{
+		CustomerName: "Хамзат", Phone: "+79204827777", DeliveryType: domain.DeliveryPickUp,
+		Comment: "Тестовый заказ, не готовить",
+		Items:   []domain.OrderItem{{ProductID: "latte", Amount: 1}},
 	})
+	request := r.Clone(r.Context())
+	request.Body = io.NopCloser(bytes.NewReader(payload))
+	request.ContentLength = int64(len(payload))
+	request.Header.Set("Content-Type", "application/json")
+	h.CreateOrder(w, request)
 }
 
 // HealthCheck обрабатывает GET /api/health

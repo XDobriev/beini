@@ -33,7 +33,7 @@ func newMockServer(t *testing.T) (*httptest.Server, *iiko.CreateDeliveryRequest)
 		resp := iiko.CreateDeliveryResponse{
 			CorrelationID: "corr-12345",
 			OrderInfo: iiko.OrderInfo{
-				ID:             "order-test-id",
+				ID:             captured.Order.ID,
 				CreationStatus: iiko.StatusSuccess,
 			},
 		}
@@ -66,21 +66,25 @@ func newTestHandlerWithServer(t *testing.T, srvURL string, testToken string) (*O
 	cat := catalog.DefaultBeiniCatalog()
 	store := idempotency.NewStore(10 * time.Minute)
 	h := NewOrderHandlerWithDeps(client, logger, testToken, cat, store)
+	t.Cleanup(store.Close)
+	t.Cleanup(h.Close)
 	return h, cat, store
 }
 
-func newTestHandler(testToken string) *OrderHandler {
+func newTestHandler(t *testing.T, testToken string) *OrderHandler {
 	cfg := &config.Config{
 		APIBaseURL: "http://localhost:0",
 		TestToken:  testToken,
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	client := iiko.NewClient(cfg, logger)
-	return NewOrderHandler(client, logger, testToken)
+	h := NewOrderHandler(client, logger, testToken)
+	t.Cleanup(h.Close)
+	return h
 }
 
 func TestHealthCheck(t *testing.T) {
-	h := newTestHandler("")
+	h := newTestHandler(t, "")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	w := httptest.NewRecorder()
@@ -106,7 +110,7 @@ func TestHealthCheck(t *testing.T) {
 }
 
 func TestCreateOrder_MethodNotAllowed(t *testing.T) {
-	h := newTestHandler("")
+	h := newTestHandler(t, "")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/order", nil)
 	w := httptest.NewRecorder()
@@ -120,7 +124,7 @@ func TestCreateOrder_MethodNotAllowed(t *testing.T) {
 }
 
 func TestCreateOrder_InvalidJSON(t *testing.T) {
-	h := newTestHandler("")
+	h := newTestHandler(t, "")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/order", strings.NewReader("{invalid-json"))
 	w := httptest.NewRecorder()
@@ -134,7 +138,7 @@ func TestCreateOrder_InvalidJSON(t *testing.T) {
 }
 
 func TestCreateOrder_ValidationError(t *testing.T) {
-	h := newTestHandler("")
+	h := newTestHandler(t, "")
 
 	// Заказ без номера телефона и без блюд
 	emptyOrder := `{"customerName": "Иван"}`
@@ -287,10 +291,12 @@ func TestCreateOrder_IdempotencyKey(t *testing.T) {
 	})
 	mux.HandleFunc("/api/1/deliveries/create", func(w http.ResponseWriter, r *http.Request) {
 		createCalls.Add(1)
+		var sent iiko.CreateDeliveryRequest
+		_ = json.NewDecoder(r.Body).Decode(&sent)
 		resp := iiko.CreateDeliveryResponse{
 			CorrelationID: "corr-first-order",
 			OrderInfo: iiko.OrderInfo{
-				ID:             "order-1",
+				ID:             sent.Order.ID,
 				CreationStatus: iiko.StatusSuccess,
 			},
 		}
@@ -392,7 +398,7 @@ func TestCreateOrder_AmountLimits(t *testing.T) {
 }
 
 func TestCreateOrder_UnsupportedMediaType(t *testing.T) {
-	h := newTestHandler("")
+	h := newTestHandler(t, "")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/order", strings.NewReader("some-text"))
 	req.Header.Set("Content-Type", "text/plain")
@@ -446,7 +452,7 @@ func TestCreateOrder_IdempotencyPayloadMismatch(t *testing.T) {
 }
 
 func TestSendTestOrder_MethodNotAllowed(t *testing.T) {
-	h := newTestHandler("")
+	h := newTestHandler(t, "")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/test-order", nil)
 	w := httptest.NewRecorder()
@@ -460,7 +466,7 @@ func TestSendTestOrder_MethodNotAllowed(t *testing.T) {
 }
 
 func TestSendTestOrder_ForbiddenWhenRemoteAndNoToken(t *testing.T) {
-	h := newTestHandler("valid-secret-token")
+	h := newTestHandler(t, "valid-secret-token")
 
 	// Запрос с внешнего IP без токена
 	req := httptest.NewRequest(http.MethodPost, "/api/test-order", nil)
@@ -476,7 +482,7 @@ func TestSendTestOrder_ForbiddenWhenRemoteAndNoToken(t *testing.T) {
 }
 
 func TestSendTestOrder_ProxyForbiddenWhenNoToken(t *testing.T) {
-	h := newTestHandler("") // без токена
+	h := newTestHandler(t, "") // без токена
 
 	// Запрос с loopback, но с заголовком X-Forwarded-For (запрос пришел через внешний прокси)
 	req := httptest.NewRequest(http.MethodPost, "/api/test-order", nil)

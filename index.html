@@ -64,7 +64,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261101-integration">
 </head>
 <body>
 
@@ -129,7 +129,8 @@
       <div class="menu-grid">
         <nav class="cat-side wide-only" id="cat-side" aria-label="Разделы меню"></nav>
         <div style="min-width:0">
-          <div class="cat-chips narrow-only" id="cat-chips"></div>
+          <div class="menu-search"><label for="menu-search">Поиск по меню</label><div class="menu-search-row"><input class="input" id="menu-search" type="search" placeholder="Название или состав"><button type="button" class="btn btn-line" id="search-clear">Очистить</button></div><p id="menu-freshness" class="pickup-note" role="status">Проверяем актуальность меню…</p>
+        <div id="search-status" role="status"></div></div><div class="cat-chips narrow-only" id="cat-chips"></div>
           <div id="menu-sections"></div>
         </div>
         <aside class="cart-card wide-only" id="cart-card" aria-label="Ваш заказ"></aside>
@@ -232,6 +233,6 @@
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script src="js/menu-data.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=20261101-integration-2"></script>
 </body>
 </html>

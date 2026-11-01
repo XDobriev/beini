@@ -871,3 +871,4 @@ git commit -m "feat(server): wire telegram notifier with configuration fallback"
 - [x] **Spec coverage:** Проверены все требования: отправка в Telegram, несколько `chat_id`, HTML-экранирование, алерт при сбоях iiko, fallback Noop, zero-bloat.
 - [x] **Placeholder scan:** Отсутствуют "TODO", "TBD", пропущенные куски кода или неспецифицированные методы.
 - [x] **Type consistency:** Имена типов (`Notifier`, `TelegramNotifier`, `NoopNotifier`), методов (`NotifyNewOrder`, `NotifyOrderFailure`) и параметров совпадают во всех задачах.
+

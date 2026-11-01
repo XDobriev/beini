@@ -118,6 +118,7 @@ func NewCORS(allowedOrigins []string) func(http.Handler) http.Handler {
 				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Test-Token, Idempotency-Key, X-Idempotency-Key")
+				w.Header().Set("Access-Control-Expose-Headers", "Idempotency-Key, Retry-After, X-Cache-Lookup")
 				w.Header().Set("Access-Control-Max-Age", "86400")
 
 				// Preflight OPTIONS запрос

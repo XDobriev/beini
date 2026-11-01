@@ -4,6 +4,8 @@
 
   const WA_PHONE = '79204827777';
   const CART_KEY = 'beini_cart';
+  const ORDER_KEY = 'beini_order_attempt';
+  const CART_PRICES_KEY = 'beini_cart_prices';
   const CAT_ORDER = ['eastern', 'grill', 'soups', 'salads', 'sushi', 'pizza', 'desserts', 'drinks'];
   const CAT_NAMES = { eastern: 'Национальная и восточная', grill: 'Мангал и стейки', soups: 'Супы', salads: 'Салаты и закуски', sushi: 'Роллы', pizza: 'Пицца и выпечка', desserts: 'Десерты', drinks: 'Кофе и бар' };
   const CAT_SHORT = { eastern: 'Национальная', grill: 'Мангал', soups: 'Супы', salads: 'Салаты', sushi: 'Роллы', pizza: 'Пицца', desserts: 'Десерты', drinks: 'Напитки' };
@@ -30,7 +32,7 @@
   }
 
   const rawMenu = (typeof MENU_DATA !== 'undefined' && Array.isArray(MENU_DATA)) ? MENU_DATA : [];
-  const menu = rawMenu
+  let menu = rawMenu
     .filter(c => c && CAT_ORDER.includes(c.category) && Array.isArray(c.items))
     .map(c => ({
       ...c,
@@ -46,11 +48,19 @@
   }));
 
   const state = {
+    menuReady: false,
+    menuExpiresAt: 0,
+    menuMessage: 'Проверяем актуальность меню…',
+    priceNotice: false,
+    canRetry: false,
     cart: loadCart(),
+    cartPrices: loadCartPrices(),
     orderType: 'delivery', // delivery | pickup
     active: menu[0] ? menu[0].category : CAT_ORDER[0],
     sheetOpen: false,
-    orderStatus: 'idle', // idle | sending | success | error
+    orderStatus: 'idle',
+    query: '',
+    attempt: loadAttempt(),
     orderError: '',
     badField: '',
     orderedTotal: 0,
@@ -72,8 +82,38 @@
       return cart;
     } catch (e) { return {}; }
   }
+  function loadAttempt() {
+    try {
+      const a = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+      return a && typeof a.key === 'string' && typeof a.status === 'string' ? a : null;
+    } catch (e) { return null; }
+  }
+  function saveAttempt() {
+    try {
+      if (state.attempt) localStorage.setItem(ORDER_KEY, JSON.stringify(state.attempt)); else localStorage.removeItem(ORDER_KEY);
+      return true;
+    } catch (e) { return false; }
+  }
+  function loadCartPrices() {
+    try { return JSON.parse(localStorage.getItem(CART_PRICES_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
   function saveCart() {
-    try { localStorage.setItem(CART_KEY, JSON.stringify(state.cart)); } catch (e) { /* приватный режим */ }
+    const prices = {};
+    Object.keys(state.cart).forEach(id => {
+      if (dishes[id]) prices[id] = state.cartPrices[id] == null ? dishes[id].price : state.cartPrices[id];
+    });
+    state.cartPrices = prices;
+    try {
+      localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+      localStorage.setItem(CART_PRICES_KEY, JSON.stringify(prices));
+    } catch (e) { /* приватный режим */ }
+  }
+  function acceptPrices() {
+    readForm();
+    Object.keys(state.cart).forEach(id => { if (dishes[id]) state.cartPrices[id] = dishes[id].price; });
+    state.priceNotice = false;
+    saveCart();
+    renderCart();
   }
   function cartLines() {
     return Object.keys(state.cart).filter(id => dishes[id]).map(id => ({ dish: dishes[id], qty: state.cart[id] }));
@@ -82,9 +122,16 @@
   function cartTotal() { return cartLines().reduce((n, l) => n + l.qty * l.dish.price, 0); }
 
   function changeQty(id, delta) {
+    if (['sending', 'pending', 'unknown'].includes(state.orderStatus)) return;
+    if (delta > 0 && (!orderingReady() || !dishes[id] || !dishes[id].available)) return;
     const next = Math.max(0, (state.cart[id] || 0) + delta);
     if (next) state.cart[id] = next; else delete state.cart[id];
-    if (state.orderStatus === 'success') state.orderStatus = 'idle';
+    if (state.orderStatus === 'success') {
+      state.orderStatus = 'idle';
+      state.attempt = null;
+      state.priceNotice = false;
+      saveAttempt();
+    }
     state.orderError = '';
     saveCart();
     if (delta > 0 && navigator.vibrate) navigator.vibrate(10);
@@ -99,17 +146,32 @@
 
   /* ---------- Меню ---------- */
   function dishControl(id) {
+    if (!orderingReady() || !dishes[id].available) return '<span class="pickup-note">Сейчас недоступно</span>';
     const qty = state.cart[id] || 0;
     if (!qty) return `<button type="button" class="add" data-action="inc" data-id="${id}" aria-label="Добавить в заказ">+</button>`;
     return `<span class="stepper"><button type="button" data-action="dec" data-id="${id}" aria-label="Убрать одну порцию">−</button><span>${qty}</span><button type="button" data-action="inc" data-id="${id}" aria-label="Добавить ещё одну порцию">+</button></span>`;
   }
   function updateDishControl(id) {
     const el = document.querySelector(`.dish-ctl[data-id="${id}"]`);
-    if (el) el.innerHTML = dishControl(id);
+    if (el) {
+      const action = el.contains(document.activeElement) ? document.activeElement.dataset.action : null;
+      el.innerHTML = dishControl(id);
+      if (action) {
+        const next = el.querySelector(`[data-action="${action}"]`) || el.querySelector('button');
+        if (next) next.focus();
+      }
+    }
   }
 
+  function normalizeSearch(value) {
+    return value.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').trim().replace(/\s+/g, ' ');
+  }
   function renderMenu() {
-    $('menu-sections').innerHTML = menu.map(c => `
+    const q = normalizeSearch(state.query);
+    const visible = q ? menu.map(c => ({ ...c, items: c.items.filter(i => normalizeSearch((i.name || '') + ' ' + (i.description || '')).includes(q)) })).filter(c => c.items.length) : menu;
+    const count = visible.reduce((n, c) => n + c.items.length, 0);
+    $('search-status').textContent = q ? (count ? 'Найдено блюд: ' + count : 'Ничего не найдено. Попробуйте другой запрос или очистите поиск.') : '';
+    $('menu-sections').innerHTML = visible.map(c => `
       <div class="menu-cat" id="cat-${c.category}">
         <h3 class="h3">${esc(CAT_NAMES[c.category] || c.categoryName)}</h3>
         ${c.items.map(i => `
@@ -137,6 +199,7 @@
   }
 
   function jump(cat) {
+    if (state.query) { state.query = ''; $('menu-search').value = ''; renderMenu(); }
     const el = $('cat-' + cat);
     if (!el) return;
     const offset = isWide() ? 90 : 120;
@@ -151,6 +214,7 @@
     spyTicking = true;
     requestAnimationFrame(() => {
       spyTicking = false;
+      if (!menu.length || state.query) return;
       let cur = menu[0].category;
       menu.forEach(c => {
         const el = $('cat-' + c.category);
@@ -172,6 +236,7 @@
       `<button type="button" data-action="type" data-type="${v}" class="${state.orderType === v ? 'on' : ''}">${n}</button>`).join('');
   }
   function setType(t) {
+    if (['sending', 'pending', 'unknown'].includes(state.orderStatus)) return;
     state.orderType = t;
     state.orderError = '';
     renderOrderType();
@@ -236,7 +301,12 @@
   }
   function closeSheet() {
     state.sheetOpen = false;
-    if (state.orderStatus === 'success') state.orderStatus = 'idle';
+    if (state.orderStatus === 'success') {
+      state.orderStatus = 'idle';
+      state.attempt = null;
+      state.priceNotice = false;
+      saveAttempt();
+    }
     state.orderError = '';
     state.badField = '';
     document.body.classList.remove('locked');
@@ -287,6 +357,10 @@
     if (state.orderStatus === 'success') {
       body = `<p class="sheet-msg">Заказ на ${fmt(state.orderedTotal)} ₽ принят. Мы позвоним, чтобы подтвердить.</p>
         <button type="button" class="btn btn-line" data-action="close-sheet">Вернуться в меню</button>`;
+    } else if (state.orderStatus === 'rejected') {
+      body = '<p class="sheet-msg" role="alert">Касса отклонила заказ. Заказ не подтверждён. Уточните причину в ресторане.</p><a class="btn btn-line" href="tel:+79204827777">Позвонить в ресторан</a><button type="button" class="btn btn-line" data-action="new-order">Вернуться к оформлению</button>';
+    } else if (state.orderStatus === 'pending' || state.orderStatus === 'unknown') {
+      body = `<p class="sheet-msg" role="status">${state.orderStatus === 'pending' ? 'Заказ отправлен, но касса ещё не подтвердила его приём.' : 'Не удалось узнать результат отправки. Заказ мог быть передан ресторану.'} Статус обновляется автоматически. Не оформляйте второй заказ.</p>${state.canRetry ? '<button type="button" class="btn btn-line" data-action="retry-order">Повторить запрос с прежним ключом</button>' : ''}<a class="btn btn-line" href="tel:+79204827777">Позвонить в ресторан</a><button type="button" class="btn btn-line" data-action="close-sheet">Вернуться в меню</button>`;
     } else if (!lines.length) {
       body = '<div class="sheet-empty">Пока пусто. Добавьте блюда из меню — кнопка «+» рядом с ценой.</div>';
     } else {
@@ -312,10 +386,13 @@
                <input class="input${state.badField === 'f-address' ? ' bad' : ''}" id="f-address" placeholder="Адрес в Назрани: улица, дом, квартира" autocomplete="street-address" value="${esc(f.address)}"${fieldErr('f-address')}>`
             : '<div class="pickup-note">Заберёте по адресу: Осканова, 21</div>'}
         </div>
+        <p class="pickup-note" role="status">${esc(state.menuMessage)}</p>
+        ${state.priceNotice ? '<p class="form-error" role="alert">Цены в корзине изменились. Проверьте новые цены и сумму.</p><button type="button" class="btn btn-line" data-action="accept-prices">Подтвердить новые цены</button>' : ''}
+        ${lines.some(l => !l.dish.available) ? '<p class="form-error">В корзине есть недоступные блюда. Удалите их для оформления.</p>' : ''}
         ${state.orderError ? `<div class="form-error" id="order-error" role="alert">${esc(state.orderError)}</div>` : ''}
         <div class="sheet-total"><span class="lbl">Итого · оплата наличными</span><span class="sum">${fmt(total)} ₽</span></div>
-        <button type="button" class="btn btn-ink" data-action="place-order"${sending ? ' disabled' : ''}>${sending ? 'Отправляем…' : 'Оформить заказ'}</button>
-        ${state.orderStatus === 'error' ? '<button type="button" class="btn btn-line btn-wa" data-action="order-wa">Отправить в WhatsApp</button>' : ''}`;
+        <button type="button" class="btn btn-ink" data-action="place-order"${sending || !orderingReady() || state.priceNotice || lines.some(l => !l.dish.available) ? ' disabled' : ''}>${sending ? 'Отправляем…' : 'Оформить заказ'}</button>
+`;
     }
 
     overlay.innerHTML = `
@@ -324,6 +401,9 @@
         ${body}
       </div>`;
     overlay.hidden = false;
+    if (state.orderStatus === 'sending') {
+      overlay.querySelectorAll('input, [data-action="inc"], [data-action="dec"], [data-action="type"]').forEach(el => { el.disabled = true; });
+    }
     restoreFocus(key);
   }
 
@@ -342,7 +422,150 @@
     return '';
   }
 
+  function orderingReady() {
+    return state.menuReady && Date.now() < state.menuExpiresAt;
+  }
+
+  let menuTimer;
+  async function refreshMenu() {
+    clearTimeout(menuTimer);
+    try {
+      const res = await fetch('/api/menu', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.items) || !Array.isArray(data.categories) || !data.version) throw new Error('menu');
+      const expires = Math.min(Date.parse(data.menuUpdatedAt) + 2 * 3600000, Date.parse(data.stopListUpdatedAt) + 5 * 60000);
+      state.menuReady = data.orderingAvailable === true && Number.isFinite(expires) && Date.now() < expires;
+      state.menuExpiresAt = expires;
+      readForm();
+      const previous = { ...dishes };
+      Object.keys(dishes).forEach(id => { delete dishes[id]; });
+      menu = data.categories.slice().sort((a, b) => a.sortOrder - b.sortOrder).map(c => ({
+        category: c.id, name: c.name,
+        items: data.items.filter(i => i.category === c.id && isValidDish(i, c.id)).map(i => ({ ...i, available: state.menuReady && i.available === true }))
+      })).filter(c => c.items.length);
+      menu.forEach(c => c.items.forEach(i => { dishes[i.id] = i; }));
+      // Исчезнувшие позиции остаются в корзине, чтобы гость мог их удалить.
+      Object.keys(state.cart).forEach(id => {
+        if (!dishes[id] && previous[id]) dishes[id] = { ...previous[id], available: false };
+        if (['idle', 'error'].includes(state.orderStatus) && dishes[id] && previous[id] && dishes[id].price !== (state.cartPrices[id] == null ? previous[id].price : state.cartPrices[id])) state.priceNotice = true;
+      });
+      state.menuMessage = state.menuReady
+        ? 'Меню проверено: ' + new Date(data.menuUpdatedAt).toLocaleTimeString('ru-RU') + '. Наличие: ' + new Date(data.stopListUpdatedAt).toLocaleTimeString('ru-RU') + '.'
+        : 'Данные меню устарели. Оформление временно недоступно.';
+    } catch (e) {
+      readForm();
+      state.menuReady = false;
+      state.menuMessage = 'Не удалось проверить меню. Доступен просмотр, оформление временно недоступно.';
+    }
+    $('menu-freshness').textContent = state.menuMessage;
+    renderMenu();
+    renderCart();
+    menuTimer = setTimeout(refreshMenu, 30000);
+  }
+
+  let statusTimer;
+  let attemptGeneration = 0;
+  let statusDelay = 5000;
+  function scheduleStatus(delay = statusDelay) {
+    clearTimeout(statusTimer);
+    if (state.attempt && ['sending', 'pending', 'unknown'].includes(state.attempt.status)) statusTimer = setTimeout(pollStatus, delay);
+  }
+  function applyStatus(data) {
+    if (data.status === 'confirmed' && data.creationStatus === 'Success' && Number.isFinite(data.totalSum)) {
+      state.cart = {};
+      saveCart();
+      state.orderedTotal = data.totalSum;
+      state.orderStatus = 'success';
+      state.priceNotice = false;
+      state.attempt = { key: state.attempt.key, status: 'confirmed', totalSum: data.totalSum };
+    } else if (data.status === 'rejected') {
+      state.orderStatus = 'rejected';
+      state.attempt = { key: state.attempt.key, status: 'rejected' };
+    } else if (data.status === 'pending') {
+      state.orderStatus = data.outcomeUnknown ? 'unknown' : 'pending';
+      state.attempt.status = state.orderStatus;
+    } else { return false; }
+    state.orderError = '';
+    saveAttempt();
+    return true;
+  }
+  async function pollStatus() {
+    if (!state.attempt || !['sending', 'pending', 'unknown'].includes(state.attempt.status)) return;
+    const attempt = state.attempt;
+    const generation = attemptGeneration;
+    const current = () => state.attempt === attempt && attemptGeneration === generation
+      && ['sending', 'pending', 'unknown'].includes(attempt.status);
+    try {
+      const res = await fetch('/api/order/status', {
+        headers: { 'Idempotency-Key': attempt.key }, cache: 'no-store', signal: AbortSignal.timeout(10000)
+      });
+      const data = await res.json();
+      if (!current()) return;
+      if (!applyStatus(data)) {
+        state.canRetry = res.status === 404 || res.status >= 500;
+        throw new Error('status');
+      }
+      state.canRetry = false;
+      statusDelay = Math.max(5000, Math.min(60000, (Number(res.headers.get('Retry-After')) || 5) * 1000));
+    } catch (e) {
+      if (!current()) return;
+      state.canRetry = true;
+      state.orderStatus = 'unknown';
+      state.attempt.status = 'unknown';
+      saveAttempt();
+      statusDelay = Math.min(60000, statusDelay * 2);
+    }
+    renderCart();
+    scheduleStatus();
+  }
+  async function sendAttempt() {
+    attemptGeneration++; // Поздний polling не может изменить результат этого POST.
+    clearTimeout(statusTimer);
+    state.orderStatus = 'sending';
+    state.attempt.status = 'sending';
+    if (!saveAttempt()) {
+      state.orderStatus = 'error';
+      state.orderError = 'Не удалось сохранить ключ заказа. Разрешите локальное хранение данных и повторите.';
+      state.attempt = null;
+      renderCart();
+      return;
+    }
+    renderCart();
+    try {
+      const res = await fetch('/api/order', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': state.attempt.key },
+        body: state.attempt.body, signal: AbortSignal.timeout(40000)
+      });
+      const data = await res.json();
+      if (res.status === 409 && data.code === 'price_changed' && Array.isArray(data.items)) {
+        data.items.forEach(i => {
+          Object.values(dishes).filter(d => d.iikoId === i.productId).forEach(d => { d.price = i.price; });
+        });
+        state.priceNotice = true;
+        state.orderStatus = 'idle';
+        state.attempt = null;
+        saveAttempt();
+      } else if (applyStatus(data)) {
+        state.canRetry = false;
+      } else if (res.status === 400 || res.status === 413 || res.status === 415) {
+        state.orderStatus = 'error';
+        state.orderError = data.error || 'Проверьте данные заказа.';
+        state.attempt = null;
+        saveAttempt();
+      } else { throw new Error('unknown'); }
+    } catch (err) {
+      state.orderStatus = 'unknown';
+      state.attempt.status = 'unknown';
+      state.canRetry = true;
+      saveAttempt();
+    }
+    renderMenu();
+    renderCart();
+    scheduleStatus();
+  }
   async function placeOrder() {
+    if (['sending', 'pending', 'unknown', 'rejected'].includes(state.orderStatus)) return;
+    if (!orderingReady() || state.priceNotice || cartLines().some(l => !l.dish.available)) return;
     readForm();
     const problem = validateOrder();
     if (problem) {
@@ -354,52 +577,15 @@
       return;
     }
     state.badField = '';
-
     const lines = cartLines();
-    const total = cartTotal();
-    state.orderStatus = 'sending';
-    state.orderError = '';
-    renderSheet();
-
+    if (!lines.length) return;
     const payload = {
-      customerName: state.form.name || 'Гость',
-      phone: state.form.phone,
-      deliveryType: state.orderType,
-      address: state.orderType === 'delivery' ? state.form.address : '',
-      comment: 'Заказ с сайта',
-      items: lines.map(l => ({ productId: l.dish.id || l.dish.iikoId, amount: l.qty }))
+      customerName: state.form.name || 'Гость', phone: state.form.phone, deliveryType: state.orderType,
+      address: state.orderType === 'delivery' ? state.form.address : '', comment: 'Заказ с сайта',
+      items: lines.map(l => ({ productId: l.dish.id, amount: l.qty })), expectedPrices: lines.map(l => l.dish.price)
     };
-
-    const idempotencyKey = (window.crypto && typeof crypto.randomUUID === 'function')
-      ? crypto.randomUUID()
-      : 'order-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
-
-    try {
-      const res = await fetch('/api/order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': idempotencyKey
-        },
-        body: JSON.stringify(payload)
-      });
-      let data = {};
-      try { data = await res.json(); } catch (e) { /* не JSON */ }
-      if (!res.ok || !data.success) throw new Error(data.error || 'Не удалось отправить заказ');
-
-      state.cart = {};
-      saveCart();
-      state.orderedTotal = total;
-      state.orderStatus = 'success';
-      state.orderError = '';
-      renderCart();
-      document.querySelectorAll('.dish-ctl').forEach(el => { el.innerHTML = dishControl(el.dataset.id); });
-    } catch (err) {
-      console.error('Ошибка отправки заказа:', err);
-      state.orderStatus = 'error';
-      state.orderError = 'Не получилось отправить заказ. Попробуйте ещё раз или отправьте его в WhatsApp.';
-      renderSheet();
-    }
+    state.attempt = { body: JSON.stringify(payload), key: crypto.randomUUID(), status: 'sending' };
+    await sendAttempt();
   }
 
   function orderToWhatsApp() {
@@ -506,6 +692,8 @@
   }
 
   /* ---------- События ---------- */
+  $('menu-search').addEventListener('input', e => { state.query = e.target.value; renderMenu(); });
+  $('search-clear').addEventListener('click', () => { state.query = ''; $('menu-search').value = ''; renderMenu(); $('menu-search').focus(); });
   document.addEventListener('click', e => {
     const overlay = $('sheet-overlay');
     if (e.target === overlay) { closeSheet(); return; }
@@ -521,6 +709,9 @@
       case 'open-sheet': openSheet(); break;
       case 'close-sheet': closeSheet(); break;
       case 'place-order': placeOrder(); break;
+      case 'accept-prices': acceptPrices(); break;
+      case 'retry-order': if (state.orderStatus === 'unknown' && state.attempt && state.attempt.body) sendAttempt(); break;
+      case 'new-order': state.attempt = null; saveAttempt(); state.orderStatus = 'idle'; renderCart(); break;
       case 'order-wa': orderToWhatsApp(); break;
       case 'b-zone': readBookForm(); state.book.zone = i; renderBooking(); break;
       case 'b-day': readBookForm(); state.book.day = i; renderBooking(); break;
@@ -534,17 +725,32 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   // Корзина обновилась в другой вкладке (например, вернулись из Instagram)
   window.addEventListener('storage', e => {
-    if (e.key !== CART_KEY) return;
+    if (e.key === ORDER_KEY && state.orderStatus !== 'sending') {
+      state.attempt = loadAttempt();
+      if (state.attempt) { restoreAttempt(); renderCart(); scheduleStatus(0); }
+      return;
+    }
+    if (e.key !== CART_KEY || state.orderStatus === 'sending') return;
     state.cart = loadCart();
+    state.cartPrices = loadCartPrices();
     renderCart();
     document.querySelectorAll('.dish-ctl').forEach(el => { el.innerHTML = dishControl(el.dataset.id); });
   });
 
   /* ---------- Старт ---------- */
   $('reels').innerHTML = REELS.map(n => `<a href="https://instagram.com/beini.rest/" aria-label="Открыть Instagram"><img src="assets/images/instagram/${n}.jpg" alt="" loading="lazy"></a>`).join('');
+  function restoreAttempt() {
+    if (!state.attempt) return;
+    if (state.attempt.status === 'confirmed') { state.orderStatus = 'success'; state.orderedTotal = state.attempt.totalSum; }
+    else if (state.attempt.status === 'rejected') state.orderStatus = 'rejected';
+    else state.orderStatus = state.attempt.status === 'pending' ? 'pending' : 'unknown';
+  }
+  restoreAttempt();
   renderOrderType();
   renderMenu();
   renderCart();
   renderBooking();
+  refreshMenu();
+  scheduleStatus(0);
   window.BEINI = { toast };
 })();

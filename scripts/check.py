@@ -25,6 +25,7 @@ def main():
             ("Go vet", ["go", "vet", "./..."]),
             ("Server build", ["go", "build", "-o", binary, "./cmd/server"]),
             ("App syntax", ["node", "--check", "js/app.js"]),
+            ("Checkout persistence", ["node", "scripts/check-checkout.cjs"]),
             ("Menu syntax", ["node", "--check", "js/menu-data.js"]),
             ("Menu consistency", ["node", "scripts/check-menu.cjs"]),
             ("Importer tests", [sys.executable, "-B", "-m", "unittest", "discover",

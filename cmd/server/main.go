@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -13,12 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"beini-backend/internal/catalog"
 	"beini-backend/internal/config"
-	"beini-backend/internal/handler"
-	"beini-backend/internal/idempotency"
-	"beini-backend/internal/iiko"
-	"beini-backend/internal/middleware"
 )
 
 func serveIndex(w http.ResponseWriter, r *http.Request, dir string) {
@@ -132,50 +126,12 @@ func main() {
 		staticDir = envStatic
 	}
 
-	// 4. Инициализация слоя интеграции с iiko
-	iikoClient := iiko.NewClient(cfg, logger)
-
-	// 5. Инициализация серверного каталога блюд и защиты от дублей
-	beiniCatalog := catalog.DefaultBeiniCatalog()
-	idempotencyStore := idempotency.NewStore(30 * time.Minute)
-
-	// 6. Инициализация HTTP хендлеров
-	orderHandler := handler.NewOrderHandlerWithDeps(iikoClient, logger, cfg.TestToken, beiniCatalog, idempotencyStore)
-
-	// 7. Ограничитель частоты запросов для оформления заказов (10 заказов в минуту на IP)
-	orderRateLimiter := middleware.NewRateLimiter(10, time.Minute)
-
-	// 8. Настройка роутинга (Go 1.22+ ServeMux)
-	mux := http.NewServeMux()
-
-	// API эндпоинты с защитой Rate Limiter
-	mux.HandleFunc("/api/health", orderHandler.HealthCheck)
-	mux.Handle("/api/order", middleware.RateLimit(orderRateLimiter)(http.HandlerFunc(orderHandler.CreateOrder)))
-	mux.Handle("/api/test-order", middleware.RateLimit(orderRateLimiter)(http.HandlerFunc(orderHandler.SendTestOrder)))
-
-	// Корректный JSON 404 fallback для любых несуществующих /api/* маршрутов
-	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-			"error":   "эндпоинт API не найден",
-		})
-	})
-
-	// Служебная страница проверки кассы (изолирована от основного сайта)
-	mux.HandleFunc("/demo", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(staticDir, "demo.html"))
-	})
-
-	// Статический фронтенд (index.html, css, js, assets) с защитой служебных файлов и 404 fallback
-	mux.Handle("/", safeFileServer(staticDir))
-
-	// 9. Применение цепочки middleware: Recoverer -> Logger -> CORS -> Mux
-	var rootHandler http.Handler = mux
-	rootHandler = middleware.NewCORS(cfg.AllowedOrigins)(rootHandler)
-	rootHandler = middleware.Logger(logger)(rootHandler)
-	rootHandler = middleware.Recoverer(logger)(rootHandler)
+	rootHandler, closeApp, err := newApplication(cfg, logger, staticDir, os.Getenv("BEINI_STATE_DIR"))
+	if err != nil {
+		logger.Error("ошибка инициализации приложения", "error", err)
+		os.Exit(1)
+	}
+	defer closeApp()
 
 	// 8. Конфигурация HTTP сервера с production-таймаутами
 	serverAddr := ":" + cfg.Port

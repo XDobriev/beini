@@ -40,7 +40,9 @@ func NewClient(cfg *config.Config, logger *slog.Logger) *Client {
 	return &Client{
 		cfg: cfg,
 		httpClient: &http.Client{
-			Timeout: 35 * time.Second, // Таймаут сетевых запросов
+			// Не повторять POST create при HTTP 307/308.
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+			Timeout:       35 * time.Second, // Таймаут сетевых запросов
 			Transport: &http.Transport{
 				Proxy:                 http.ProxyFromEnvironment,
 				TLSHandshakeTimeout:   20 * time.Second,
@@ -102,6 +104,23 @@ func (c *Client) GetToken(ctx context.Context) (string, error) {
 
 // CreateDeliveryOrder отправляет заказ на кассовый терминал iikoFront
 func (c *Client) CreateDeliveryOrder(ctx context.Context, order *domain.Order) (*CreateDeliveryResponse, error) {
+	resp, err := c.submitDeliveryOrder(ctx, order, "")
+	if err != nil {
+		return resp, err
+	}
+	return c.awaitOrder(ctx, resp)
+}
+
+// SubmitDeliveryOrder отправляет create ровно один раз без опроса. ID должен быть
+// сохранён вызывающим кодом до вызова; любой сбой не разрешает повторный create.
+func (c *Client) SubmitDeliveryOrder(ctx context.Context, order *domain.Order, id string) (*CreateDeliveryResponse, error) {
+	if id == "" {
+		return nil, errors.New("не задан ID заказа")
+	}
+	return c.submitDeliveryOrder(ctx, order, id)
+}
+
+func (c *Client) submitDeliveryOrder(ctx context.Context, order *domain.Order, id string) (*CreateDeliveryResponse, error) {
 	if err := order.Validate(); err != nil {
 		return nil, fmt.Errorf("валидация заказа не пройдена: %w", err)
 	}
@@ -156,6 +175,7 @@ func (c *Client) CreateDeliveryOrder(ctx context.Context, order *domain.Order) (
 		TerminalGroupID:     c.cfg.TerminalGroupID,
 		CreateOrderSettings: CreateOrderSettings{TransportToFrontTimeout: c.cfg.TransportToFrontTimeout},
 		Order: IikoOrder{
+			ID:            id,
 			Phone:         order.Phone,
 			OrderTypeID:   orderTypeID,
 			Customer:      IikoCustomer{Name: customerName, Type: "regular", Comment: order.Comment},
@@ -185,10 +205,13 @@ func (c *Client) CreateDeliveryOrder(ctx context.Context, order *domain.Order) (
 		return nil, fmt.Errorf("ошибка вызова /api/1/deliveries/create: %w", err)
 	}
 
-	return c.awaitOrder(ctx, &resp)
+	if resp.OrderInfo.ID == "" || (id != "" && resp.OrderInfo.ID != id) {
+		return nil, errors.New("iiko вернул отсутствующий или несовпадающий ID заказа")
+	}
+	return &resp, nil
 }
 
-// OrderError — заказ отклонён iiko (статус Error/Cancelled или не принят кассой вовремя)
+// OrderError — явный конечный отказ iiko (creationStatus Error/Cancelled).
 type OrderError struct {
 	Status string
 	Info   *ErrorInfo
@@ -221,7 +244,7 @@ func (c *Client) awaitOrder(ctx context.Context, resp *CreateDeliveryResponse) (
 			return resp, ctx.Err()
 		case <-time.After(time.Second):
 		}
-		info, err := c.getOrderInfo(ctx, resp.OrderInfo.ID)
+		info, err := c.GetOrderInfo(ctx, resp.OrderInfo.ID)
 		if err != nil {
 			c.logger.Warn("не удалось получить статус заказа", "orderId", resp.OrderInfo.ID, "error", err)
 			continue
@@ -230,8 +253,11 @@ func (c *Client) awaitOrder(ctx context.Context, resp *CreateDeliveryResponse) (
 	}
 }
 
-// getOrderInfo запрашивает актуальный статус заказа через /api/1/deliveries/by_id
-func (c *Client) getOrderInfo(ctx context.Context, orderID string) (*OrderInfo, error) {
+// GetOrderInfo запрашивает статус конкретного ID; пустой список не означает отказ.
+func (c *Client) GetOrderInfo(ctx context.Context, orderID string) (*OrderInfo, error) {
+	if orderID == "" {
+		return nil, errors.New("не задан ID заказа")
+	}
 	token, err := c.GetToken(ctx)
 	if err != nil {
 		return nil, err
@@ -244,10 +270,12 @@ func (c *Client) getOrderInfo(ctx context.Context, orderID string) (*OrderInfo, 
 	if err != nil {
 		return nil, err
 	}
-	if len(resp.Orders) == 0 {
-		return nil, errors.New("заказ не найден в iikoCloud")
+	for _, info := range resp.Orders {
+		if info.ID == orderID {
+			return &info, nil
+		}
 	}
-	return &resp.Orders[0], nil
+	return nil, errors.New("заказ с запрошенным ID не найден в iikoCloud")
 }
 
 // SendTestOrder отправляет тестовый заказ самовывоза для живой проверки в ресторане

@@ -17,7 +17,9 @@ tools/import_menu.py — Автономный импортёр и аудитор
 """
 
 import argparse
+import copy
 import json
+import math
 import os
 import re
 import sys
@@ -110,7 +112,8 @@ def load_config() -> Dict[str, Any]:
         'apiKey': os.environ.get('IIKO_API_KEY', ''),
         'appId': os.environ.get('IIKO_APP_ID', ''),
         'clientSecret': os.environ.get('IIKO_CLIENT_SECRET', ''),
-        'organizationId': os.environ.get('IIKO_ORGANIZATION_ID', '')
+        'organizationId': os.environ.get('IIKO_ORGANIZATION_ID', ''),
+        'terminalGroupId': os.environ.get('IIKO_TERMINAL_GROUP_ID', '')
     }
 
 
@@ -145,12 +148,12 @@ def fetch_token(config: Dict[str, Any]) -> str:
 
     # Авторизация iiko API v2 (рекомендуемый протокол iikoCloud)
     payload_v2 = {
-        'apiLogin': api_key,
+        'apiKey': api_key,
         'appId': app_id,
         'clientSecret': client_secret
     }
     req = urllib.request.Request(
-        f"{base_url}/api/2/access_token",
+        f"{base_url}/api/v2/access_token",
         data=json.dumps(payload_v2).encode('utf-8'),
         headers={'Content-Type': 'application/json'}
     )
@@ -161,7 +164,8 @@ def fetch_token(config: Dict[str, Any]) -> str:
                 json.dump({'token': token, 'ts': time.time()}, cf)
             return token
     except urllib.error.HTTPError as e:
-        err_body = e.read().decode('utf-8')
+        # Never include API response bodies: they can contain credentials.
+        e.read()
         if e.code == 423:
             raise RuntimeError(
                 "HTTP 423 Locked: В iikoWeb истекла лицензия Cloud API для apiLogin ресторана.\n"
@@ -169,9 +173,9 @@ def fetch_token(config: Dict[str, Any]) -> str:
             ) from e
         elif e.code == 401:
             raise RuntimeError(
-                f"HTTP 401 Unauthorized: Проверьте правильность apiLogin, appId и clientSecret в iiko_config.json.\nОтвет: {err_body}"
+                f"HTTP 401 Unauthorized: Проверьте правильность apiLogin, appId и clientSecret в iiko_config.json."
             ) from e
-        raise RuntimeError(f"HTTP {e.code} при авторизации в iikoCloud: {err_body}") from e
+        raise RuntimeError(f"HTTP {e.code} при авторизации в iikoCloud") from e
 
 
 def fetch_live_nomenclature(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -199,40 +203,111 @@ def fetch_live_nomenclature(config: Dict[str, Any]) -> Dict[str, Any]:
         return json.loads(resp.read().decode('utf-8'))
 
 
-def fetch_live_stop_lists(config: Dict[str, Any]) -> Set[str]:
-    """
-    Запрос актуального стоп-листа кассового контура (/api/1/stop_lists).
-    Возвращает множество iikoId блюд, недоступных на кассе.
-    """
-    org_id = config.get('organizationId', '').strip()
-    if not org_id:
-        return set()
+def parse_stop_lists(data: Dict[str, Any], org_id: str, terminal_id: str) -> Set[str]:
+    """Only an explicit items:[] for the selected terminal means empty."""
+    if not org_id or not terminal_id:
+        raise ValueError("Нужны organizationId и terminalGroupId для стоп-листа.")
+    if not isinstance(data, dict) or any(data.get(k) for k in ('error', 'errorCode', 'errorDescription')):
+        raise ValueError("Ошибка или поврежденный ответ стоп-листа.")
+    groups = data.get('terminalGroupStopLists')
+    if not isinstance(groups, list):
+        raise ValueError("Отсутствует terminalGroupStopLists.")
+    organizations = [g for g in groups if isinstance(g, dict) and g.get('organizationId') == org_id]
+    if len(organizations) != 1 or not isinstance(organizations[0].get('items'), list):
+        raise ValueError("Стоп-лист организации отсутствует или неоднозначен.")
+    terminals = [t for t in organizations[0]['items']
+                 if isinstance(t, dict) and t.get('terminalGroupId') == terminal_id]
+    if len(terminals) != 1 or not isinstance(terminals[0].get('items'), list):
+        raise ValueError("Стоп-лист выбранной терминальной группы отсутствует или неоднозначен.")
+    stopped, seen = set(), set()
+    for item in terminals[0]['items']:
+        if not isinstance(item, dict):
+            raise ValueError("Поврежденная позиция стоп-листа.")
+        pid, balance = item.get('productId'), item.get('balance')
+        if (not isinstance(pid, str) or not pid or pid in seen
+                or isinstance(balance, bool) or not isinstance(balance, (int, float))
+                or not math.isfinite(balance) or item.get('sizeId') is not None):
+            raise ValueError("Поврежденная позиция стоп-листа.")
+        seen.add(pid)
+        if balance <= 0:
+            stopped.add(pid)
+    return stopped
 
-    try:
-        token = fetch_token(config)
-        base_url = config.get('apiBaseUrl', 'https://api-ru.iiko.services').rstrip('/')
-        payload = {'organizationIds': [org_id]}
-        req = urllib.request.Request(
-            f"{base_url}/api/1/stop_lists",
-            data=json.dumps(payload).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {token}'
-            }
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
-            stopped_ids = set()
-            for tg in data.get('terminalGroupStopLists', []):
-                for item in tg.get('items', []):
-                    prod_id = item.get('productId')
-                    balance = item.get('balance', 0)
-                    if prod_id and balance <= 0:
-                        stopped_ids.add(prod_id)
-            return stopped_ids
-    except Exception as e:
-        print(f"[!] Не удалось получить стоп-лист iiko: {e}")
-        return set()
+
+def fetch_live_stop_lists(config: Dict[str, Any]) -> Set[str]:
+    """Failure propagates; it must never become an empty stop-list."""
+    org_id = config.get('organizationId', '').strip()
+    terminal_id = config.get('terminalGroupId', '').strip()
+    if not org_id or not terminal_id:
+        raise ValueError("Нужны organizationId и terminalGroupId для стоп-листа.")
+    token = fetch_token(config)
+    base_url = config.get('apiBaseUrl', 'https://api-ru.iiko.services').rstrip('/')
+    req = urllib.request.Request(
+        f"{base_url}/api/1/stop_lists",
+        data=json.dumps({'organizationIds': [org_id], 'terminalGroupsIds': [terminal_id],
+                         'returnSize': False}).encode('utf-8'),
+        headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return parse_stop_lists(json.loads(resp.read().decode('utf-8')), org_id, terminal_id)
+
+
+def product_price(product: Dict[str, Any]) -> float:
+    """Do not silently choose a size or publish unsupported modifier combinations."""
+    prices = product.get('sizePrices')
+    if not isinstance(prices, list):
+        raise ValueError("Поврежденные цены номенклатуры.")
+    for price in prices:
+        if not isinstance(price, dict) or not isinstance(price.get('price'), dict):
+            raise ValueError("Поврежденные цены номенклатуры.")
+        if not isinstance(price['price'].get('isIncludedInMenu'), bool):
+            raise ValueError("Отсутствует признак включения цены в меню.")
+        value = price['price'].get('currentPrice')
+        if isinstance(value, bool) or not isinstance(value, (float, int)) or not math.isfinite(value) or value < 0:
+            raise ValueError("Некорректная цена номенклатуры.")
+    if (product.get('isDeleted') or str(product.get('type', '')).lower() not in ('dish', 'good')
+            or product.get('useBalanceForSell') is not False
+            or product.get('canSetOpenPrice') is not False
+            or product.get('orderItemType', 'Product') != 'Product'
+            or product.get('isSoldByWeight') or product.get('modifiers') or product.get('groupModifiers')
+            or len(prices) != 1 or prices[0].get('sizeId')
+            or product.get('isIncludedInMenu') is False
+            or prices[0]['price'].get('isIncludedInMenu') is not True):
+        return 0
+    return prices[0]['price']['currentPrice']
+
+
+def validate_nomenclature(data: Dict[str, Any]) -> None:
+    if not isinstance(data, dict) or not isinstance(data.get('products'), list) or not data['products']:
+        raise ValueError("Ожидается полная непустая номенклатура.")
+    seen = set()
+    for p in data['products']:
+        if (not isinstance(p, dict) or not isinstance(p.get('id'), str) or not p['id'] or p['id'] in seen
+                or not isinstance(p.get('isDeleted'), bool)):
+            raise ValueError("Некорректный идентификатор номенклатуры.")
+        seen.add(p['id'])
+        if not p['isDeleted']:
+            if not p.get('name') or not p.get('type') or not p.get('sizePrices'):
+                raise ValueError("Неполная номенклатура.")
+            product_price(p)
+
+
+def apply_reconciliation(local: Dict[str, Any], nomenclature: Dict[str, Any],
+                         stopped_ids: Optional[Set[str]]) -> Dict[str, Any]:
+    validate_nomenclature(nomenclature)
+    result = copy.deepcopy(local)
+    products = {p['id']: p for p in nomenclature['products']}
+    for item in result.get('items', []):
+        prod = products.get(item.get('iikoId'))
+        price = product_price(prod) if prod and not prod['isDeleted'] else 0
+        if price > 0:
+            item['price'] = price
+        # Preserve editorial exclusions. Restoring stopped items belongs to the
+        # server's separate sellable flag, not to a one-off destructive import.
+        item['available'] = (item.get('available', True) and price > 0
+                             and (stopped_ids is None or item['iikoId'] not in stopped_ids))
+    result['lastUpdated'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    return result
 
 
 def load_local_catalog(path: Optional[Path] = None) -> Dict[str, Any]:
@@ -329,7 +404,7 @@ def audit_catalog(catalog: Dict[str, Any], root: Path) -> Dict[str, Any]:
 def reconcile_menu(
     local_catalog: Dict[str, Any],
     nomenclature_data: Dict[str, Any],
-    stopped_ids: Set[str],
+    stopped_ids: Optional[Set[str]],
     root: Path
 ) -> Dict[str, Any]:
     """
@@ -340,6 +415,7 @@ def reconcile_menu(
     - unavailable: позиции в стоп-листе или с нулевой ценой в iiko
     - missing_media_or_cat: позиции каталога без существующего фото или без категории
     """
+    validate_nomenclature(nomenclature_data)
     local_items = local_catalog.get('items', [])
     local_by_iiko = {item.get('iikoId'): item for item in local_items if item.get('iikoId')}
 
@@ -369,12 +445,7 @@ def reconcile_menu(
             continue
 
         # Извлекаем цену
-        price = 0.0
-        size_prices = prod.get('sizePrices', [])
-        if size_prices and isinstance(size_prices, list):
-            first_sp = size_prices[0]
-            price_obj = first_sp.get('price', {})
-            price = float(price_obj.get('currentPrice', 0.0))
+        price = product_price(prod) if not is_deleted else 0
 
         if pid not in local_by_iiko:
             # Новая позиция в iiko
@@ -405,11 +476,8 @@ def reconcile_menu(
             continue
 
         # Проверка доступности (стоп-лист или 0 руб.)
-        is_stopped = iid in stopped_ids
-        iiko_price = 0.0
-        size_prices = iiko_prod.get('sizePrices', [])
-        if size_prices and isinstance(size_prices, list):
-            iiko_price = float(size_prices[0].get('price', {}).get('currentPrice', 0.0))
+        is_stopped = stopped_ids is not None and iid in stopped_ids
+        iiko_price = product_price(iiko_prod)
 
         if is_stopped:
             unavailable.append({
@@ -440,6 +508,7 @@ def reconcile_menu(
             })
 
     return {
+        'stopListKnown': stopped_ids is not None,
         'totalLocal': len(local_items),
         'totalIiko': len(iiko_products),
         'added': added,
@@ -490,8 +559,10 @@ def format_report(report_data: Dict[str, Any], dry_run: bool = True) -> str:
         for u in unavail:
             it = u['item']
             lines.append(f"    • {it.get('name')} (iikoId: {it.get('iikoId')}) — {u['reason']}")
+    elif report_data.get("stopListKnown", False):
+        lines.append("    ✓ Недоступных позиций не обнаружено.")
     else:
-        lines.append("    ✓ Стоп-лист чист, все позиции доступны к заказу.")
+        lines.append("    ? Стоп-лист неизвестен; доступность не подтверждена.")
 
     # 4. Позиции без фото или категории
     missing = report_data.get('missingMediaOrCat', [])
@@ -602,7 +673,12 @@ def main():
         help="Путь для сохранения отчета об аудите в файл (markdown или txt)."
     )
 
+    parser.add_argument('--stop-list-file', help="Локальный ответ /api/1/stop_lists для --from-file.")
+    parser.add_argument('--organization-id', help="Организация для локального стоп-листа.")
+    parser.add_argument('--terminal-group-id', help="Терминальная группа для локального стоп-листа.")
     args = parser.parse_args()
+    if args.stop_list_file and not args.from_file:
+        parser.error('--stop-list-file требует --from-file')
     root = get_repo_root()
     catalog_path = root / 'data' / 'menu_catalog.json'
     js_path = root / 'js' / 'menu-data.js'
@@ -640,7 +716,7 @@ def main():
 
     # 2. Режимы с номенклатурой (live или from-file)
     nomenclature_data = None
-    stopped_ids: Set[str] = set()
+    stopped_ids: Optional[Set[str]] = None
 
     if args.from_file:
         file_path = Path(args.from_file)
@@ -650,6 +726,9 @@ def main():
         print(f"[*] Чтение номенклатуры iiko из файла: {file_path}")
         with open(file_path, 'r', encoding='utf-8') as f:
             nomenclature_data = json.load(f)
+        if args.stop_list_file:
+            with open(args.stop_list_file, 'r', encoding='utf-8') as f:
+                stopped_ids = parse_stop_lists(json.load(f), args.organization_id, args.terminal_group_id)
 
     elif args.live_fetch:
         print("[*] ЯВНАЯ КОМАНДА: Подключение к iikoCloud API ресторана BEINI...")
@@ -660,8 +739,8 @@ def main():
             stopped_ids = fetch_live_stop_lists(config)
             if stopped_ids:
                 print(f"✓ Получен стоп-лист кассы: {len(stopped_ids)} позиций временно заблокировано.")
-        except Exception as e:
-            print(f"[!] Ошибка подключения к iiko: {e}")
+        except Exception:
+            print("[!] Ошибка подключения к iiko; изменения не применены.")
             sys.exit(1)
 
     # Выполняем сверку
@@ -681,24 +760,7 @@ def main():
     if args.apply:
         print("\n[*] Применение изменений к локальному каталогу...")
 
-        # Обновляем цены существующих блюд
-        updated_items = []
-        for it in local_catalog.get('items', []):
-            iid = it.get('iikoId')
-            # Если позиция в стоп-листе кассы, помечаем available = False
-            if iid in stopped_ids:
-                it['available'] = False
-            else:
-                it['available'] = True
-
-            # Обновляем цену, если изменилась в iiko
-            for pc in reconciled.get('priceChanged', []):
-                if pc['item'].get('id') == it.get('id'):
-                    it['price'] = pc['newPrice']
-            updated_items.append(it)
-
-        local_catalog['items'] = updated_items
-        local_catalog['lastUpdated'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        local_catalog = apply_reconciliation(local_catalog, nomenclature_data, stopped_ids)
 
         # Сохраняем data/menu_catalog.json
         catalog_path.parent.mkdir(parents=True, exist_ok=True)

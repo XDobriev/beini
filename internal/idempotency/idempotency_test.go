@@ -124,3 +124,19 @@ func TestIdempotency_TTLExpire(t *testing.T) {
 	defer release2()
 	complete2(200, nil, []byte("data2"))
 }
+
+func TestPendingDoesNotExpireWhileSenderOwnsLock(t *testing.T) {
+	store := NewStore(time.Millisecond)
+	defer store.Close()
+	_, complete, release, err := store.Lock("slow", "body")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	time.Sleep(5 * time.Millisecond)
+	store.Sweep()
+	if _, _, _, err := store.Lock("slow", "body"); err != ErrConflict {
+		t.Fatalf("pending потерял lock: %v", err)
+	}
+	complete(200, nil, []byte("done"))
+}

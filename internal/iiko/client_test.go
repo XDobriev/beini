@@ -149,3 +149,56 @@ func TestCreateDeliveryOrder_InvalidAddressRejectedBeforeRequest(t *testing.T) {
 		t.Error("запрос в iiko не должен отправляться")
 	}
 }
+
+func TestGetOrderInfoSelectsRequestedID(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v2/access_token", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(AccessTokenResponse{Token: "tok"})
+	})
+	mux.HandleFunc("/api/1/deliveries/by_id", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(OrdersByIDResponse{Orders: []OrderInfo{
+			{ID: "other", CreationStatus: StatusSuccess},
+			{ID: "wanted", CreationStatus: StatusInProgress},
+		}})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := NewClient(&config.Config{APIBaseURL: srv.URL}, nil)
+	info, err := c.GetOrderInfo(context.Background(), "wanted")
+	if err != nil || info.CreationStatus != StatusInProgress {
+		t.Fatalf("info=%+v err=%v", info, err)
+	}
+	if info, err := c.GetOrderInfo(context.Background(), "missing"); err == nil || info != nil {
+		t.Fatalf("чужой заказ принят за наш: %+v %v", info, err)
+	}
+}
+
+func TestSubmitDoesNotFollowRedirectOrAcceptMismatchedID(t *testing.T) {
+	for _, mode := range []string{"redirect", "mismatch", "malformed"} {
+		t.Run(mode, func(t *testing.T) {
+			var targetCalls atomic.Int32
+			mux := http.NewServeMux()
+			mux.HandleFunc("/api/v2/access_token", func(w http.ResponseWriter, r *http.Request) {
+				json.NewEncoder(w).Encode(AccessTokenResponse{Token: "tok"})
+			})
+			mux.HandleFunc("/target", func(w http.ResponseWriter, r *http.Request) { targetCalls.Add(1) })
+			mux.HandleFunc("/api/1/deliveries/create", func(w http.ResponseWriter, r *http.Request) {
+				switch mode {
+				case "redirect":
+					http.Redirect(w, r, "/target", http.StatusTemporaryRedirect)
+				case "mismatch":
+					json.NewEncoder(w).Encode(CreateDeliveryResponse{OrderInfo: OrderInfo{ID: "different", CreationStatus: StatusSuccess}})
+				case "malformed":
+					io.WriteString(w, `{"orderInfo":`)
+				}
+			})
+			srv := httptest.NewServer(mux)
+			defer srv.Close()
+			c := NewClient(&config.Config{APIBaseURL: srv.URL}, nil)
+			resp, err := c.SubmitDeliveryOrder(context.Background(), testOrder(domain.DeliveryPickUp, ""), "saved-id")
+			if err == nil || resp != nil || targetCalls.Load() != 0 {
+				t.Fatalf("resp=%+v err=%v redirects=%d", resp, err, targetCalls.Load())
+			}
+		})
+	}
+}

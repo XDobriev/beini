@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"beini-backend/internal/orderstate"
 )
 
 var (
@@ -40,6 +42,8 @@ type Store struct {
 	records     map[string]*record
 	ttl         time.Duration
 	stopCleaner chan struct{}
+	orders      *orderstate.Store
+	closeOnce   sync.Once
 }
 
 // NewStore создает хранилище с заданным временем жизни записей (TTL)
@@ -51,6 +55,7 @@ func NewStore(ttl time.Duration) *Store {
 		records:     make(map[string]*record),
 		ttl:         ttl,
 		stopCleaner: make(chan struct{}),
+		orders:      orderstate.NewMemory(),
 	}
 
 	// Фоновый сборщик устаревших записей (не блокирует горячий путь Lock)
@@ -72,12 +77,12 @@ func NewStore(ttl time.Duration) *Store {
 
 // Close останавливает фоновый сборщик мусора
 func (s *Store) Close() {
-	select {
-	case <-s.stopCleaner:
-	default:
-		close(s.stopCleaner)
-	}
+	s.closeOnce.Do(func() { close(s.stopCleaner) })
 }
+
+// Orders — совместимость старого конструктора handler. Заказы имеют отдельный
+// жизненный цикл и не удаляются сборщиком TTL кэша HTTP-ответов.
+func (s *Store) Orders() *orderstate.Store { return s.orders }
 
 // Sweep удаляет устаревшие записи
 func (s *Store) Sweep() {
@@ -85,7 +90,7 @@ func (s *Store) Sweep() {
 	defer s.mu.Unlock()
 	now := time.Now()
 	for k, r := range s.records {
-		if now.Sub(r.createdAt) > s.ttl {
+		if r.status == StatusCompleted && now.Sub(r.createdAt) > s.ttl {
 			delete(s.records, k)
 		}
 	}
@@ -100,7 +105,7 @@ func ValidateKey(key string) error {
 	return nil
 }
 
-// Lock проверяет статус ключа и соответствие полезной нагрузки (RFC 9651)
+// Lock проверяет статус ключа и соответствие полезной нагрузки
 func (s *Store) Lock(key, payloadHash string) (cached *CachedResponse, complete func(code int, header http.Header, body []byte), release func(), err error) {
 	if err := ValidateKey(key); err != nil {
 		return nil, nil, nil, err
@@ -113,10 +118,10 @@ func (s *Store) Lock(key, payloadHash string) (cached *CachedResponse, complete 
 
 	if r, exists := s.records[key]; exists {
 		// Если запись просрочена — перезаписываем
-		if now.Sub(r.createdAt) > s.ttl {
+		if r.status == StatusCompleted && now.Sub(r.createdAt) > s.ttl {
 			delete(s.records, key)
 		} else {
-			// Проверка совпадения полезной нагрузки по RFC 9651
+			// Проверка совпадения полезной нагрузки
 			if r.payloadHash != "" && payloadHash != "" && r.payloadHash != payloadHash {
 				return nil, nil, nil, ErrPayloadMismatch
 			}
