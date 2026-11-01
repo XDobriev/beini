@@ -93,3 +93,34 @@ attempt и блокировку редактирования при unresolved; 
 Браузерная матрица и результаты общего запуска: [передача](tasks/integration-2026-11-01.md).
 Sandbox может запрещать loopback и операции во временных каталогах. При таких
 ошибках повторять offline-команду с разрешённым loopback, не менять бизнес-логику.
+
+
+## Доставка уведомлений — 1 ноября 2026
+
+`internal/notifier`: mock transport проверяет pending перед конечным событием,
+сохранённый retry/ack после рестарта, concurrent Step, подтверждения частей,
+сбой ack после отправки, panic и постоянные ошибки без удаления события.
+429 сохраняет transport cooldown и блокирует также другие заказы до срока.
+Regression-тесты проверяют отсчёт retry после завершения Send и crash между
+записями общей паузы/срока части с восстановлением реального файлового журнала.
+Loopback Bot API проверяет sendMessage, валидный message_id, ошибки HTTP/JSON,
+retry_after, запрет redirects, скрытие токена и карточки более 4096 UTF-16 единиц.
+`TestDeliverySyncFailureDoesNotAck` проверяет реальную ошибку записи отдельного
+журнала и отсутствие неподтверждённого ack после восстановления.
+
+`TestApplicationMenuOrderRestart` дополнен mock transport: при его отказе create
+выполняется один раз; после рестарта приходят pending и итог confirmed/rejected.
+`TestNotificationFailureDoesNotBlockApplication` проверяет чтение статуса и
+shutdown при зависшем transport и повреждённом receipts. Конфигурационные тесты
+закрепляют server-only ENV и отсутствие Telegram-секретов в сериализации Config.
+
+Общий запуск `python scripts/check.py` в notification worktree 1 ноября 2026:
+All checks passed (Go tests/vet/build, JS checks, 14 Python-тестов, 35 блюд).
+Актуальная передача: [уведомления](tasks/notifications-2026-11-01.md).
+UI не изменён; новая браузерная приёмка не проводилась. Внешние Telegram/iiko
+не вызывались; группа, реквизиты и живая приёмка остаются отдельным этапом.
+
+Race detector этого этапа: `go test -race ./internal/notifier ./internal/orderstate
+./cmd/server` не собрал тесты: Windows GCC/ld не нашёл crt2.o/crtbegin.o в
+кириллическом пути установки. Обычные Go-тесты пройдены; отсутствие гонок
+race detector не подтверждено.

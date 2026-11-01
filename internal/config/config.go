@@ -21,15 +21,18 @@ type PaymentTypes struct {
 
 // Config содержит все параметры подключения к iikoCloud и конфигурацию HTTP-сервера
 type Config struct {
-	Port            string       `json:"port"`
-	APIBaseURL      string       `json:"apiBaseUrl"`
-	AppID           string       `json:"appId"`
-	ClientSecret    string       `json:"clientSecret"`
-	APIKey          string       `json:"apiKey"`
-	OrganizationID  string       `json:"organizationId"`
-	TerminalGroupID string       `json:"terminalGroupId"`
-	OrderTypes      OrderTypes   `json:"orderTypes"`
-	PaymentTypes    PaymentTypes `json:"paymentTypes"`
+	// Только окружение сервера; не сериализуются и не загружаются из JSON.
+	TelegramBotToken string       `json:"-"`
+	TelegramChatID   string       `json:"-"`
+	Port             string       `json:"port"`
+	APIBaseURL       string       `json:"apiBaseUrl"`
+	AppID            string       `json:"appId"`
+	ClientSecret     string       `json:"clientSecret"`
+	APIKey           string       `json:"apiKey"`
+	OrganizationID   string       `json:"organizationId"`
+	TerminalGroupID  string       `json:"terminalGroupId"`
+	OrderTypes       OrderTypes   `json:"orderTypes"`
+	PaymentTypes     PaymentTypes `json:"paymentTypes"`
 
 	// DeliveryCity — город для адреса доставки (iiko ищет улицу по названию и городу)
 	DeliveryCity string `json:"deliveryCity"`
@@ -78,6 +81,8 @@ func Load(path string) (*Config, error) {
 
 // applyEnv переопределяет параметры конфигурации из переменных окружения
 func applyEnv(cfg *Config) {
+	cfg.TelegramBotToken = strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN"))
+	cfg.TelegramChatID = strings.TrimSpace(os.Getenv("TELEGRAM_CHAT_ID"))
 	if envPort := os.Getenv("PORT"); envPort != "" {
 		cfg.Port = envPort
 	}

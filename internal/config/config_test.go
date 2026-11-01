@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -105,5 +107,22 @@ func TestConfigLoad_ErrorWhenMissingBothFileAndEnv(t *testing.T) {
 	_, err := Load(filepath.Join(t.TempDir(), "nonexistent.json"))
 	if err == nil {
 		t.Error("Load должен вернуть ошибку при отсутствии файла и переменных окружения")
+	}
+}
+
+func TestTelegramOnlyServerEnvironment(t *testing.T) {
+	t.Setenv("TELEGRAM_BOT_TOKEN", "123:secret")
+	t.Setenv("TELEGRAM_CHAT_ID", "-123")
+	cfg := &Config{}
+	applyEnv(cfg)
+	if cfg.TelegramBotToken != "123:secret" || cfg.TelegramChatID != "-123" {
+		t.Fatal("missing server config")
+	}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "secret") || strings.Contains(string(data), "-123") {
+		t.Fatal("telegram settings serialized")
 	}
 }

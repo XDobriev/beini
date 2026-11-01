@@ -29,6 +29,8 @@ var (
 // Record хранит состояние и защищённый источник будущих уведомлений.
 // Исходный ключ клиента не сохраняется; NotificationSource не возвращается HTTP.
 type Record struct {
+	DeliveryAttempts   int       `json:"deliveryAttempts,omitempty"`
+	DeliveryNextAt     time.Time `json:"deliveryNextAt,omitempty"`
 	NotificationSource string    `json:"notificationSource,omitempty"`
 	KeyHash            string    `json:"keyHash"`
 	PayloadHash        string    `json:"payloadHash"`

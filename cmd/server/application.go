@@ -18,6 +18,7 @@ import (
 	"beini-backend/internal/iiko"
 	"beini-backend/internal/menusync"
 	"beini-backend/internal/middleware"
+	"beini-backend/internal/notifier"
 	"beini-backend/internal/orderstate"
 )
 
@@ -57,6 +58,21 @@ func stateDirectory(staticDir, stateDir string) (string, error) {
 }
 
 func newApplication(cfg *config.Config, logger *slog.Logger, staticDir, stateDir string) (http.Handler, func(), error) {
+	var transport notifier.Transport
+	if cfg.TelegramBotToken != "" || cfg.TelegramChatID != "" {
+		telegram, err := notifier.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID)
+		if err != nil {
+			logger.Error("Telegram не настроен; события остаются в очереди")
+		} else {
+			transport = telegram
+		}
+	} else {
+		logger.Info("Telegram отключён; события остаются в очереди")
+	}
+	return newApplicationWithTransport(cfg, logger, staticDir, stateDir, transport)
+}
+
+func newApplicationWithTransport(cfg *config.Config, logger *slog.Logger, staticDir, stateDir string, transport notifier.Transport) (http.Handler, func(), error) {
 	dir, err := stateDirectory(staticDir, stateDir)
 	if err != nil {
 		return nil, nil, err
@@ -94,10 +110,41 @@ func newApplication(cfg *config.Config, logger *slog.Logger, staticDir, stateDir
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() { defer close(done); syncer.Run(ctx) }()
+	// Ошибка отдельного delivery-журнала не блокирует заказы и menu worker.
+	notifyDone := make(chan struct{})
+	var receipts *orderstate.Store
+	if transport != nil {
+		receipts, err = orderstate.Open(filepath.Join(dir, "notifications.jsonl"))
+		if err == nil {
+			// Случайная смена группы не должна отправить накопленные контакты в другой чат.
+			var binding orderstate.Record
+			binding, _, err = receipts.Reserve("telegram-destination", orderstate.Hash([]byte(cfg.TelegramChatID)), 0)
+			receipts.Release(binding)
+		}
+		if err != nil {
+			logger.Error("доставка уведомлений отключена: проверьте журнал и привязку группы")
+			if receipts != nil {
+				receipts.Close()
+				receipts = nil
+			}
+		}
+	}
+	if receipts != nil {
+		worker := notifier.New(states, receipts, transport, logger)
+		go func() { defer close(notifyDone); worker.Run(ctx) }()
+	} else {
+		close(notifyDone)
+	}
 	var once sync.Once
 	closeApp := func() {
 		once.Do(func() {
 			cancel()
+			<-notifyDone
+			if receipts != nil {
+				if err := receipts.Close(); err != nil {
+					logger.Error("ошибка закрытия журнала уведомлений")
+				}
+			}
 			<-done
 			orders.Close()
 			if err := states.Close(); err != nil {

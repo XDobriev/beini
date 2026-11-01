@@ -7,7 +7,7 @@ import (
 )
 
 // Notification — локальное недоставленное событие. ID стабилен после рестарта.
-// Telegram transport, retry отправки и durable ack реализуются следующим этапом.
+// Transport и durable receipts находятся в internal/notifier и отдельном журнале.
 type Notification struct {
 	ID        string          `json:"id"`
 	OrderID   string          `json:"orderId"`
@@ -18,7 +18,7 @@ type Notification struct {
 
 // NotificationQueue восстанавливает pending и конечное событие из одного
 // транзакционного журнала. Нет окна между записью состояния и enqueue.
-// Очередь намеренно не выставлена через HTTP. До внедрения ack записи сохраняются.
+// Очередь намеренно не выставлена через HTTP. Notifier фильтрует доставленные ID.
 func (s *Store) NotificationQueue() ([]Notification, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

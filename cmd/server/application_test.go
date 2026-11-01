@@ -1,7 +1,11 @@
 package main
 
 import (
+	"beini-backend/internal/notifier"
+	"beini-backend/internal/orderstate"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -9,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -81,7 +86,10 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 			os.WriteFile(filepath.Join(web, "data", "menu_catalog.json"), []byte(`{"categories":[{"id":"grill","name":"Мангал"}],"items":[{"id":"one","iikoId":"11111111-1111-4111-8111-111111111111","name":"Блюдо","category":"grill","price":590,"available":true}]}`), 0600)
 			cfg := &config.Config{APIBaseURL: mock.URL, OrganizationID: "org", TerminalGroupID: "term"}
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-			app, closeApp, err := newApplication(cfg, logger, web, state)
+			tr := &appNotificationTransport{}
+			tr.fail.Store(true)
+			cfg.TelegramChatID = "-123"
+			app, closeApp, err := newApplicationWithTransport(cfg, logger, web, state, tr)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -118,9 +126,17 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 			if w = call("POST", "/api/order", body); w.Code != 200 || creates.Load() != 1 {
 				t.Fatalf("duplicate before restart: %d", creates.Load())
 			}
+			deadline = time.Now().Add(3 * time.Second)
+			for tr.attempts.Load() == 0 {
+				if time.Now().After(deadline) {
+					t.Fatal("notification failure was not exercised")
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
 			closeApp()
 			final.Store(scenario.final)
-			app, closeApp, err = newApplication(cfg, logger, web, state)
+			tr.fail.Store(false)
+			app, closeApp, err = newApplicationWithTransport(cfg, logger, web, state, tr)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -149,6 +165,136 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 			if w = call("POST", "/api/order", strings.Replace(body, `[620]`, `[590]`, 1)); w.Code != 422 {
 				t.Fatal("changed body reused key")
 			}
+			deadline = time.Now().Add(5 * time.Second)
+			for tr.count() < 2 {
+				if time.Now().After(deadline) {
+					t.Fatal("notifications did not recover after restart")
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			tr.mu.Lock()
+			defer tr.mu.Unlock()
+			if len(tr.messages) != 2 || !strings.Contains(tr.messages[0], ":pending") {
+				t.Fatal("unexpected event sequence")
+			}
+			finalStatus := ":confirmed"
+			if scenario.final == "Error" {
+				finalStatus = ":rejected"
+			}
+			if !strings.Contains(tr.messages[1], finalStatus) {
+				t.Fatal("wrong final notification")
+			}
+
 		})
 	}
+}
+
+type blockingNotificationTransport struct{ started chan struct{} }
+
+func (b *blockingNotificationTransport) Send(ctx context.Context, _ string) error {
+	select {
+	case b.started <- struct{}{}:
+	default:
+	}
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+var _ notifier.Transport = (*blockingNotificationTransport)(nil)
+
+func TestNotificationFailureDoesNotBlockApplication(t *testing.T) {
+	for _, mode := range []string{"blocked", "broken", "changed-group"} {
+		t.Run(mode, func(t *testing.T) {
+			state := t.TempDir()
+			orders, err := orderstate.Open(filepath.Join(state, "orders.jsonl"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			rec, _, err := orders.ReserveWithNotification("existing-key", "body", 100, `{"phone":"+79990000000","items":[{"name":"Блюдо","amount":1,"price":100}]}`)
+			if err != nil {
+				t.Fatal(err)
+			}
+			orders.Release(rec)
+			orders.Close()
+			if mode == "broken" {
+				os.WriteFile(filepath.Join(state, "notifications.jsonl"), []byte("broken\n"), 0600)
+			}
+			api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(503) }))
+			defer api.Close()
+			cfg := &config.Config{APIBaseURL: api.URL, OrganizationID: "org", TerminalGroupID: "term", TelegramChatID: "-123"}
+			if mode == "changed-group" {
+				receipts, err := orderstate.Open(filepath.Join(state, "notifications.jsonl"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, _, err = receipts.Reserve("telegram-destination", orderstate.Hash([]byte("-456")), 0)
+				receipts.Close()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			tr := &blockingNotificationTransport{started: make(chan struct{}, 1)}
+			app, closeApp, err := newApplicationWithTransport(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "../..", state, tr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer closeApp()
+			if mode == "changed-group" {
+				released, err := orderstate.Open(filepath.Join(state, "notifications.jsonl"))
+				if err != nil {
+					t.Fatal("mismatched destination still has an active delivery journal")
+				}
+				released.Close()
+				select {
+				case <-tr.started:
+					t.Fatal("message sent to wrong destination")
+				default:
+				}
+			}
+			if mode == "blocked" {
+				select {
+				case <-tr.started:
+				case <-time.After(3 * time.Second):
+					t.Fatal("worker did not start")
+				}
+			}
+			req := httptest.NewRequest("GET", "/api/order/status", nil)
+			req.Header.Set("Idempotency-Key", "existing-key")
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, req)
+			if w.Code != 200 || !strings.Contains(w.Body.String(), `"status":"pending"`) {
+				t.Fatalf("notification failure affected order: %d %s", w.Code, w.Body)
+			}
+			done := make(chan struct{})
+			go func() { closeApp(); close(done) }()
+			select {
+			case <-done:
+			case <-time.After(3 * time.Second):
+				t.Fatal("notification shutdown blocked")
+			}
+		})
+	}
+}
+
+type appNotificationTransport struct {
+	fail     atomic.Bool
+	attempts atomic.Int32
+	mu       sync.Mutex
+	messages []string
+}
+
+func (a *appNotificationTransport) Send(_ context.Context, text string) error {
+	a.attempts.Add(1)
+	if a.fail.Load() {
+		return errors.New("offline")
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.messages = append(a.messages, text)
+	return nil
+}
+func (a *appNotificationTransport) count() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return len(a.messages)
 }
