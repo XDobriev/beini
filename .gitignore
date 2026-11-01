@@ -46,7 +46,11 @@ __pycache__/
 .playwright-mcp/
 .design-review/
 .impeccable/
-.agents/
+.agents/*
+!.agents/skills/
+!.agents/rules/
+!.agents/workflows/
+.agents/skills/find-skills/
 skills-lock.json
 scratch/
 
