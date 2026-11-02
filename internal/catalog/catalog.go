@@ -7,19 +7,23 @@ import (
 
 // Item описывает блюдо в серверном каталоге номенклатуры BEINI
 type Item struct {
-	ID          string  `json:"id"`
-	IikoID      string  `json:"iikoId"`
-	Name        string  `json:"name"`
-	SourceName  string  `json:"sourceName,omitempty"`
-	Hidden      bool    `json:"hidden,omitempty"`
-	Price       float64 `json:"price"`
-	Category    string  `json:"category,omitempty"`
-	Description string  `json:"description,omitempty"`
-	Image       string  `json:"image,omitempty"`
-	Weight      string  `json:"weight,omitempty"`
-	Badge       string  `json:"badge,omitempty"`
-	IsHalal     bool    `json:"isHalal"`
-	Available   bool    `json:"available"`
+	ID           string  `json:"id"`
+	IikoID       string  `json:"iikoId"`
+	Name         string  `json:"name"`
+	SourceName   string  `json:"sourceName,omitempty"`
+	Hidden       bool    `json:"hidden,omitempty"`
+	Price        float64 `json:"price"`
+	Category     string  `json:"category,omitempty"`
+	Description  string  `json:"description,omitempty"`
+	Image        string  `json:"image,omitempty"`
+	Weight       string  `json:"weight,omitempty"`
+	VariantGroup string  `json:"variantGroup,omitempty"`
+	VariantName  string  `json:"variantName,omitempty"`
+	VariantLabel string  `json:"variantLabel,omitempty"`
+	VariantOrder int     `json:"variantOrder,omitempty"`
+	Badge        string  `json:"badge,omitempty"`
+	IsHalal      bool    `json:"isHalal"`
+	Available    bool    `json:"available"`
 	// Sellable is the reviewed + upstream eligibility before applying stop-list.
 	Sellable          bool   `json:"sellable"`
 	UnavailableReason string `json:"unavailableReason,omitempty"`

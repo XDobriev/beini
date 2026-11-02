@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -131,6 +132,37 @@ func validateItems(items []Item, categories []Category) error {
 			}
 			keys[k] = true
 		}
+	}
+	return validateVariants(items)
+}
+
+var variantGroupPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,63}$`)
+
+// Groups only affect presentation; every portion remains a separate trusted product.
+func validateVariants(items []Item) error {
+	type group struct {
+		name, category string
+		labels         map[string]bool
+		orders         map[int]bool
+	}
+	groups := map[string]*group{}
+	for _, it := range items {
+		if it.VariantGroup == "" && it.VariantName == "" && it.VariantLabel == "" && it.VariantOrder == 0 {
+			continue
+		}
+		if !variantGroupPattern.MatchString(it.VariantGroup) || strings.TrimSpace(it.VariantName) == "" || strings.TrimSpace(it.VariantLabel) == "" || it.VariantOrder < 1 {
+			return fmt.Errorf("invalid portion metadata for %q", it.ID)
+		}
+		g := groups[it.VariantGroup]
+		if g == nil {
+			g = &group{name: it.VariantName, category: it.Category, labels: map[string]bool{}, orders: map[int]bool{}}
+			groups[it.VariantGroup] = g
+		}
+		label := strings.ToLower(strings.TrimSpace(it.VariantLabel))
+		if g.name != it.VariantName || g.category != it.Category || g.labels[label] || g.orders[it.VariantOrder] {
+			return fmt.Errorf("ambiguous portion group %q", it.VariantGroup)
+		}
+		g.labels[label], g.orders[it.VariantOrder] = true, true
 	}
 	return nil
 }

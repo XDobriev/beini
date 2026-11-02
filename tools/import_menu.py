@@ -625,6 +625,9 @@ def export_js_menu_data(catalog: Dict[str, Any], js_path: Path) -> None:
                 'badge': item.get('badge', ''),
                 'isHalal': item.get('isHalal', False)
             })
+            for field in ('variantGroup', 'variantName', 'variantLabel', 'variantOrder'):
+                if field in item:
+                    grouped[cat][-1][field] = item[field]
 
     # Собираем MENU_DATA
     menu_sections = []

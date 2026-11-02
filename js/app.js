@@ -61,6 +61,7 @@
     sheetOpen: false,
     orderStatus: 'idle',
     query: '',
+    selectedVariants: {},
     attempt: loadAttempt(),
     orderError: '',
     badField: '',
@@ -125,6 +126,8 @@
   function changeQty(id, delta) {
     if (['sending', 'pending', 'unknown'].includes(state.orderStatus)) return;
     if (delta > 0 && (!orderingReady() || !dishes[id] || !dishes[id].available)) return;
+    const group = dishes[id] && dishes[id].variantGroup;
+    if (delta > 0 && group && !Object.hasOwn(state.selectedVariants, group)) state.selectedVariants[group] = id;
     const next = Math.max(0, (state.cart[id] || 0) + delta);
     if (next) state.cart[id] = next; else delete state.cart[id];
     if (state.orderStatus === 'success') {
@@ -149,7 +152,7 @@
   function dishControl(id) {
     if (!orderingReady() || !dishes[id].available) return '<span class="pickup-note">Сейчас недоступно</span>';
     const qty = state.cart[id] || 0;
-    if (!qty) return `<button type="button" class="add" data-action="inc" data-id="${id}" aria-label="Добавить в заказ">+</button>`;
+    if (!qty) return `<button type="button" class="add${dishes[id].variantGroup ? ' add-variant' : ''}" data-action="inc" data-id="${id}" aria-label="${esc('Добавить в заказ: ' + (dishes[id].name || 'блюдо'))}">${dishes[id].variantGroup ? 'Добавить' : '+'}</button>`;
     return `<span class="stepper"><button type="button" data-action="dec" data-id="${id}" aria-label="Убрать одну порцию">−</button><span>${qty}</span><button type="button" data-action="inc" data-id="${id}" aria-label="Добавить ещё одну порцию">+</button></span>`;
   }
   function updateDishControl(id) {
@@ -167,21 +170,69 @@
   function normalizeSearch(value) {
     return value.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').trim().replace(/\s+/g, ' ');
   }
+  // Presentation groups never replace the individual products used by the cart/API.
+  function menuCards(items) {
+    const slots = [], groups = new Map();
+    items.forEach(item => {
+      if (!/^[a-z][a-z0-9-]{0,63}$/.test(item.variantGroup || '') || !item.variantName || !item.variantLabel || !Number.isInteger(item.variantOrder) || item.variantOrder < 1) {
+        slots.push(item);
+        return;
+      }
+      if (!groups.has(item.variantGroup)) {
+        const group = { groupId: item.variantGroup, variants: [] };
+        groups.set(item.variantGroup, group);
+        slots.push(group);
+      }
+      groups.get(item.variantGroup).variants.push(item);
+    });
+    return slots.flatMap(slot => {
+      if (!slot.variants) return [slot];
+      const variants = slot.variants.slice().sort((a, b) => a.variantOrder - b.variantOrder);
+      // Malformed metadata must not hide or merge unrelated products.
+      if (variants.some(i => i.variantName !== variants[0].variantName || i.category !== variants[0].category) ||
+          new Set(variants.map(i => i.variantLabel)).size !== variants.length ||
+          new Set(variants.map(i => i.variantOrder)).size !== variants.length) return variants;
+      const selected = variants.find(i => i.id === state.selectedVariants[slot.groupId]) ||
+        variants.find(i => i.available) || variants[0];
+      return [{ ...selected, name: selected.variantName, groupId: slot.groupId, variants }];
+    });
+  }
+  function selectVariant(group, id) {
+    const dish = dishes[id];
+    if (!dish || dish.variantGroup !== group || (orderingReady() && !dish.available)) return;
+    state.selectedVariants[group] = id;
+    renderMenu();
+    const button = Array.from(document.querySelectorAll('[data-action="variant"]')).find(el => el.dataset.id === id);
+    if (button) button.focus({ preventScroll: true });
+  }
+  function variantControls(card) {
+    if (!card.variants) return '';
+    return `<div class="dish-variants" role="group" aria-label="${esc('Порция: ' + card.name)}">${card.variants.map(v => {
+      const unavailable = orderingReady() && !v.available;
+      return `<button type="button" class="dish-variant" data-action="variant" data-group="${esc(card.groupId)}" data-id="${esc(v.id)}" aria-pressed="${v.id === card.id}"${unavailable ? ' disabled' : ''}>
+        <span>${esc(v.variantLabel)}</span><span class="variant-price">${fmt(v.price)} ₽</span>${unavailable ? '<span class="variant-unavailable">Нет в наличии</span>' : ''}
+      </button>`;
+    }).join('')}</div>`;
+  }
   function renderMenu() {
+    const focused = document.activeElement;
+    const focusedVariant = focused && focused.dataset && focused.dataset.action === 'variant' ? focused.dataset.id : null;
     const q = normalizeSearch(state.query);
-    const visible = q ? menu.map(c => ({ ...c, items: c.items.filter(i => normalizeSearch((i.name || '') + ' ' + (i.description || '')).includes(q)) })).filter(c => c.items.length) : menu;
+    const cards = menu.map(c => ({ ...c, items: menuCards(c.items) }));
+    const visible = q ? cards.map(c => ({ ...c, items: c.items.filter(i => normalizeSearch([i.name, ...(i.variants || [i]).map(v => [v.name, v.description, v.variantLabel].join(' '))].join(' ')).includes(q)) })).filter(c => c.items.length) : cards;
     const count = visible.reduce((n, c) => n + c.items.length, 0);
     $('search-status').textContent = q ? (count ? 'Найдено блюд: ' + count : 'Ничего не найдено. Попробуйте другой запрос или очистите поиск.') : '';
     $('menu-sections').innerHTML = visible.map(c => `
       <div class="menu-cat" id="cat-${c.category}">
         <h3 class="h3">${esc(CAT_NAMES[c.category] || c.categoryName)}</h3>
         ${c.items.map(i => `
-          <article class="dish">
+          <article class="dish${i.variants ? ' dish-with-variants' : ''}">
             <img src="${esc(i.image || IMAGE_PLACEHOLDER)}" alt="${esc(i.name)}" loading="lazy" width="112" height="112" onerror="this.onerror=null;this.src='assets/images/dishes/placeholder.svg';">
             <div class="dish-body">
               ${i.badge ? `<div class="dish-badge">${esc(i.badge)}</div>` : ''}
               <div class="dish-name">${esc(i.name)}</div>
               <div class="dish-desc">${esc(i.description)}</div>
+              ${variantControls(i)}
               <div class="dish-foot">
                 <span class="price">${fmt(i.price)} ₽ ${i.weight ? `<span class="weight">· ${esc(i.weight)}</span>` : ''}</span>
                 <span class="dish-ctl" data-id="${i.id}">${dishControl(i.id)}</span>
@@ -190,6 +241,10 @@
           </article>`).join('')}
       </div>`).join('');
     renderCategories();
+    if (focusedVariant) {
+      const button = Array.from(document.querySelectorAll('[data-action="variant"]')).find(el => el.dataset.id === focusedVariant);
+      if (button) button.focus({ preventScroll: true });
+    }
   }
 
   function renderCategories() {
@@ -705,6 +760,7 @@
     switch (a) {
       case 'inc': changeQty(el.dataset.id, 1); break;
       case 'dec': changeQty(el.dataset.id, -1); break;
+      case 'variant': selectVariant(el.dataset.group, el.dataset.id); break;
       case 'jump': jump(el.dataset.cat); break;
       case 'type': readForm(); setType(el.dataset.type); break;
       case 'open-sheet': openSheet(); break;
