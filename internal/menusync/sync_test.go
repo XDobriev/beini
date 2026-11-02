@@ -307,7 +307,7 @@ func TestHTTPFailuresAndRequests(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(tc.code); w.Write([]byte(tc.body)) }))
 			defer server.Close()
-			a := &API{BaseURL: server.URL, HTTP: server.Client(), Token: func(context.Context) (string, error) { return "token", nil }}
+			a := &API{BaseURL: server.URL, HTTP: server.Client(), Token: func(context.Context) (string, error) { return "token", nil }, ExternalMenuID: "menu"}
 			if _, err := a.Menu(context.Background(), "org"); err == nil || strings.Contains(err.Error(), "secret") {
 				t.Fatalf("unsafe error: %v", err)
 			}
@@ -320,11 +320,11 @@ func TestHTTPFailuresAndRequests(t *testing.T) {
 		var req map[string]any
 		json.NewDecoder(r.Body).Decode(&req)
 		switch r.URL.Path {
-		case "/api/1/nomenclature":
-			if req["organizationId"] != "org" || req["startRevision"] != float64(0) {
+		case "/api/menu/v3/by_id":
+			if req["organizationId"] != "org" || req["externalMenuId"] != "menu" || len(req) != 2 {
 				t.Error("not full menu request")
 			}
-			w.Write(fixture(t, "nomenclature"))
+			w.Write(fixture(t, "menu_v3"))
 		case "/api/1/stop_lists":
 			if req["returnSize"] != false || !reflect.DeepEqual(req["terminalGroupsIds"], []any{"terminal"}) {
 				t.Error("missing terminal scope")
@@ -335,7 +335,7 @@ func TestHTTPFailuresAndRequests(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	a := &API{BaseURL: server.URL, HTTP: server.Client(), Token: func(context.Context) (string, error) { return "token", nil }}
+	a := &API{BaseURL: server.URL, HTTP: server.Client(), Token: func(context.Context) (string, error) { return "token", nil }, ExternalMenuID: "menu"}
 	s, _ := setup(t, a)
 	mustRefresh(t, s)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -355,7 +355,7 @@ func TestHTTPTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 	defer close(release)
-	a := &API{BaseURL: server.URL, HTTP: server.Client(), Token: func(context.Context) (string, error) { return "token", nil }}
+	a := &API{BaseURL: server.URL, HTTP: server.Client(), Token: func(context.Context) (string, error) { return "token", nil }, ExternalMenuID: "menu"}
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
 	defer cancel()
 	if _, err := a.Menu(ctx, "org"); err == nil {

@@ -51,8 +51,8 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 				switch r.URL.Path {
 				case "/api/v2/access_token":
 					io.WriteString(w, `{"token":"offline-only"}`)
-				case "/api/1/nomenclature":
-					io.WriteString(w, `{"revision":1,"products":[{"id":"11111111-1111-4111-8111-111111111111","name":"Mock","type":"dish","isDeleted":false,"useBalanceForSell":false,"canSetOpenPrice":false,"sizePrices":[{"sizeId":null,"price":{"currentPrice":620,"isIncludedInMenu":true}}]}]}`)
+				case "/api/menu/v3/by_id":
+					io.WriteString(w, `{"id":"menu","name":"Mock menu","products":[{"id":"11111111-1111-4111-8111-111111111111","orderItemType":"Product"}],"itemsGroups":[{"id":"group","items":[{"productId":"11111111-1111-4111-8111-111111111111","name":"Mock","sizePrices":[{"price":620}]}]}]}`)
 				case "/api/1/stop_lists":
 					io.WriteString(w, `{"terminalGroupStopLists":[{"organizationId":"org","items":[{"terminalGroupId":"term","items":[]}]}]}`)
 				case "/api/1/deliveries/create":
@@ -84,7 +84,7 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 			web, state := t.TempDir(), t.TempDir()
 			os.Mkdir(filepath.Join(web, "data"), 0700)
 			os.WriteFile(filepath.Join(web, "data", "menu_catalog.json"), []byte(`{"categories":[{"id":"grill","name":"Мангал"}],"items":[{"id":"one","iikoId":"11111111-1111-4111-8111-111111111111","name":"Блюдо","category":"grill","price":590,"available":true}]}`), 0600)
-			cfg := &config.Config{APIBaseURL: mock.URL, OrganizationID: "org", TerminalGroupID: "term"}
+			cfg := &config.Config{APIBaseURL: mock.URL, OrganizationID: "org", TerminalGroupID: "term", ExternalMenuID: "menu"}
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 			tr := &appNotificationTransport{}
 			tr.fail.Store(true)
@@ -221,7 +221,7 @@ func TestNotificationFailureDoesNotBlockApplication(t *testing.T) {
 			}
 			api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(503) }))
 			defer api.Close()
-			cfg := &config.Config{APIBaseURL: api.URL, OrganizationID: "org", TerminalGroupID: "term", TelegramChatID: "-123"}
+			cfg := &config.Config{APIBaseURL: api.URL, OrganizationID: "org", TerminalGroupID: "term", ExternalMenuID: "menu", TelegramChatID: "-123"}
 			if mode == "changed-group" {
 				receipts, err := orderstate.Open(filepath.Join(state, "notifications.jsonl"))
 				if err != nil {

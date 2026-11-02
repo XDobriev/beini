@@ -31,6 +31,8 @@ type Config struct {
 	APIKey           string       `json:"apiKey"`
 	OrganizationID   string       `json:"organizationId"`
 	TerminalGroupID  string       `json:"terminalGroupId"`
+	ExternalMenuID   string       `json:"externalMenuId"`
+	PriceCategoryID  string       `json:"priceCategoryId,omitempty"`
 	OrderTypes       OrderTypes   `json:"orderTypes"`
 	PaymentTypes     PaymentTypes `json:"paymentTypes"`
 
@@ -111,6 +113,12 @@ func applyEnv(cfg *Config) {
 	}
 	if envTerminalID := os.Getenv("IIKO_TERMINAL_GROUP_ID"); envTerminalID != "" {
 		cfg.TerminalGroupID = envTerminalID
+	}
+	if value := os.Getenv("IIKO_EXTERNAL_MENU_ID"); value != "" {
+		cfg.ExternalMenuID = strings.TrimSpace(value)
+	}
+	if value := os.Getenv("IIKO_PRICE_CATEGORY_ID"); value != "" {
+		cfg.PriceCategoryID = strings.TrimSpace(value)
 	}
 	if envToken := os.Getenv("TEST_ORDER_TOKEN"); envToken != "" {
 		cfg.TestToken = envToken

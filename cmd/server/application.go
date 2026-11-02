@@ -73,6 +73,9 @@ func newApplication(cfg *config.Config, logger *slog.Logger, staticDir, stateDir
 }
 
 func newApplicationWithTransport(cfg *config.Config, logger *slog.Logger, staticDir, stateDir string, transport notifier.Transport) (http.Handler, func(), error) {
+	if strings.TrimSpace(cfg.ExternalMenuID) == "" {
+		return nil, nil, errors.New("задайте externalMenuId или IIKO_EXTERNAL_MENU_ID для меню iiko v3")
+	}
 	dir, err := stateDirectory(staticDir, stateDir)
 	if err != nil {
 		return nil, nil, err
@@ -92,10 +95,11 @@ func newApplicationWithTransport(cfg *config.Config, logger *slog.Logger, static
 	}
 	client := iiko.NewClient(cfg, logger)
 	syncer, err := menusync.New(menusync.Config{
+		SourceID:       "v3:" + cfg.ExternalMenuID + ":" + cfg.PriceCategoryID,
 		OrganizationID: cfg.OrganizationID, TerminalGroupID: cfg.TerminalGroupID,
 		CachePath:    filepath.Join(dir, "menu-cache.json"),
 		MenuInterval: 15 * time.Minute, StopListInterval: time.Minute, RequestTimeout: 20 * time.Second,
-	}, &menusync.API{BaseURL: cfg.APIBaseURL, HTTP: &http.Client{Timeout: 20 * time.Second}, Token: client.GetToken}, store, seed)
+	}, &menusync.API{BaseURL: cfg.APIBaseURL, HTTP: &http.Client{Timeout: 20 * time.Second}, Token: client.GetToken, ExternalMenuID: cfg.ExternalMenuID, PriceCategoryID: cfg.PriceCategoryID}, store, seed)
 	if err != nil {
 		return nil, nil, err
 	}

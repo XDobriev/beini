@@ -54,6 +54,8 @@ func TestConfigLoad_EnvOverrides(t *testing.T) {
 	t.Setenv("DELIVERY_CITY", "Магас")
 	t.Setenv("TRANSPORT_TIMEOUT_SEC", "120")
 	t.Setenv("IIKO_API_KEY", "env-key")
+	t.Setenv("IIKO_EXTERNAL_MENU_ID", " menu ")
+	t.Setenv("IIKO_PRICE_CATEGORY_ID", " category ")
 	t.Setenv("TEST_ORDER_TOKEN", "secret-token")
 
 	cfg, err := Load(configPath)
@@ -78,6 +80,9 @@ func TestConfigLoad_EnvOverrides(t *testing.T) {
 	}
 	if cfg.TestToken != "secret-token" {
 		t.Errorf("TestToken = %q; want secret-token", cfg.TestToken)
+	}
+	if cfg.ExternalMenuID != "menu" || cfg.PriceCategoryID != "category" {
+		t.Fatal("menu scope ENV not applied")
 	}
 }
 

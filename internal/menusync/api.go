@@ -16,6 +16,8 @@ import (
 type Nomenclature struct {
 	Revision *int64    `json:"revision"`
 	Products []Product `json:"products"`
+	// V3 supplies full snapshots without a vendor revision.
+	Unversioned bool `json:"-"`
 }
 type Product struct {
 	ID                string            `json:"id"`
@@ -63,9 +65,11 @@ type Source interface {
 // API reuses the application's token provider; credentials are never persisted here.
 // BaseURL and HTTP must be explicitly supplied (httptest for offline development).
 type API struct {
-	BaseURL string
-	HTTP    *http.Client
-	Token   func(context.Context) (string, error)
+	BaseURL         string
+	HTTP            *http.Client
+	Token           func(context.Context) (string, error)
+	ExternalMenuID  string
+	PriceCategoryID string
 }
 
 func (a *API) post(ctx context.Context, path string, payload any, result any) error {
@@ -118,10 +122,18 @@ func (a *API) post(ctx context.Context, path string, payload any, result any) er
 }
 
 func (a *API) Menu(ctx context.Context, org string) (Nomenclature, error) {
-	var n Nomenclature
-	// Always request a full version. A revision delta cannot replace a full snapshot.
-	err := a.post(ctx, "/api/1/nomenclature", map[string]any{"organizationId": org, "startRevision": 0}, &n)
-	return n, err
+	if strings.TrimSpace(a.ExternalMenuID) == "" {
+		return Nomenclature{}, errors.New("external menu ID is required")
+	}
+	request := map[string]any{"externalMenuId": a.ExternalMenuID, "organizationId": org}
+	if a.PriceCategoryID != "" {
+		request["priceCategoryId"] = a.PriceCategoryID
+	}
+	var menu menuV3
+	if err := a.post(ctx, "/api/menu/v3/by_id", request, &menu); err != nil {
+		return Nomenclature{}, err
+	}
+	return normalizeV3(menu, a.ExternalMenuID)
 }
 func (a *API) StopList(ctx context.Context, org, tg string) (StopResponse, error) {
 	var s StopResponse
@@ -169,7 +181,7 @@ func stopped(s StopResponse, org, tg string) (map[string]bool, error) {
 }
 
 func products(n Nomenclature) (map[string]Product, error) {
-	if n.Revision == nil || *n.Revision < 0 || len(n.Products) == 0 {
+	if n.Revision == nil || *n.Revision < 0 || (len(n.Products) == 0 && !n.Unversioned) {
 		return nil, errors.New("incomplete nomenclature")
 	}
 	result := map[string]Product{}

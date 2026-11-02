@@ -5,6 +5,7 @@
   "apiKey": "YOUR_IIKO_API_LOGIN_HERE",
   "organizationId": "00000000-0000-0000-0000-000000000000",
   "terminalGroupId": "00000000-0000-0000-0000-000000000000",
+  "externalMenuId": "YOUR_EXTERNAL_MENU_ID",
   "orderTypes": {
     "deliveryByCourier": "00000000-0000-0000-0000-000000000000",
     "deliveryPickUp": "00000000-0000-0000-0000-000000000000",

@@ -17,6 +17,7 @@ import (
 )
 
 type Config struct {
+	SourceID         string
 	OrganizationID   string
 	TerminalGroupID  string
 	CachePath        string
@@ -49,6 +50,9 @@ func New(cfg Config, source Source, store *catalog.Store, seed catalog.Seed) (*S
 		return nil, err
 	}
 	hash := sha256.Sum256(b)
+	if cfg.SourceID != "" {
+		hash = sha256.Sum256(append(append(b, 0), []byte(cfg.SourceID)...))
+	}
 	return &Service{cfg: cfg, source: source, store: store, seed: reviewed, digest: hex.EncodeToString(hash[:]), now: time.Now}, nil
 }
 
@@ -70,7 +74,7 @@ func (s *Service) RefreshMenu(ctx context.Context) error {
 		return s.fail(true, attempt, "menu_invalid")
 	}
 	old := s.store.Snapshot()
-	if old.Version > 0 && *n.Revision < old.Revision {
+	if !n.Unversioned && old.Version > 0 && *n.Revision < old.Revision {
 		return s.fail(true, attempt, "menu_revision_regressed")
 	}
 	menuAt := s.now().UTC()

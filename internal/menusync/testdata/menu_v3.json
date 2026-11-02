@@ -1,0 +1,14 @@
+{
+  "id": "menu",
+  "name": "Reviewed menu",
+  "products": [
+    {"id":"11111111-1111-4111-8111-111111111111","sku":"1","type":"DISH","orderItemType":"Product","useBalanceForSell":false,"canSetOpenPrice":false},
+    {"id":"22222222-2222-4222-8222-222222222222","sku":"2","type":"GOODS","orderItemType":"Product"},
+    {"id":"33333333-3333-4333-8333-333333333333","sku":"3","type":"DISH","orderItemType":"Product"}
+  ],
+  "itemsGroups": [{"id":"group","name":"Group","items":[
+    {"productId":"11111111-1111-4111-8111-111111111111","name":"Имя из iiko","sizePrices":[{"sizeId":null,"price":620}]},
+    {"productId":"22222222-2222-4222-8222-222222222222","name":"Скрыто редактором","sizePrices":[{"sizeId":null,"price":400}]},
+    {"productId":"33333333-3333-4333-8333-333333333333","name":"Новинка","sizePrices":[{"sizeId":null,"price":700}]}
+  ]}]
+}
