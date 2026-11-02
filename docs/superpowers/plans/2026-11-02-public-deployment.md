@@ -17,12 +17,12 @@ Nginx, loopback 8080; чистый `/var/lib/beini`, старый локальн
 
 - [x] Проверить исходные код/CI, DNS, Docker; пройти scripts/check.py.
 - [x] Согласовать площадку и чистое состояние; проверить VPS read-only.
-- [ ] Добавить regression-тест реального loopback bind через HTTP_LISTEN_ADDR
+- [x] Добавить regression-тест реального loopback bind через HTTP_LISTEN_ADDR
   и red/green-проверку исключения сырых ответов/имени гостя из логов.
-- [ ] Реализовать минимальные правки в cmd/server/main.go и internal/iiko/client.go.
-- [ ] Подготовить deploy/beini.service, service.env.example, Nginx HTTP/HTTPS,
+- [x] Реализовать минимальные правки в cmd/server/main.go и internal/iiko/client.go.
+- [x] Подготовить deploy/beini.service, service.env.example, Nginx HTTP/HTTPS,
   упаковку Linux binary со всей статикой и seed. Проверить полную scripts/check.py.
-- [ ] Создать отдельные user/paths/release, передать конфиг по SSH без вывода,
+- [x] Создать отдельные user/paths/release, передать конфиг по SSH без вывода,
   запустить service, проверить unit, loopback, health, свежесть меню и Origin.
 - [ ] После входа владельца REG.RU заменить только A apex/www. Настроить webroot
   ACME, сертификат и продление. Проверить Nginx до reload, затем публичный HTTPS.

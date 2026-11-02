@@ -1,278 +1,155 @@
 # Публичное развёртывание BEINI
 
-Статус: в работе; локальная подготовка сервиса, затем публикация
+Статус: частично выполнено; публичный HTTPS ещё не подключён
 Обновлено: 2 ноября 2026
-Ветка: codex/public-deployment
+Целевая ветка: main; подготовка: codex/public-deployment
 Исходный commit: d3c1a24e65f5d3c98d4bedc6884380d83c226152
+Развёрнутый runtime commit: fe7420d949fb6f9bbac64bed7cba229ae1e6ead6
 
 ## Цель и критерии приёмки
 
-Публичный HTTPS origin раздаёт frontend и Go API. `/api/menu` получает свежие
-данные iiko v3, корзина использует доверенные цены. Перезапуск сохраняет журнал
-заказов и уведомлений. Новые функции, QR и настройка Telegram исключены.
-Реальные заказы автоматически не создавать.
-
-Этот документ — предложение размещения и план, **не результат развёртывания**.
-Сервер, DNS, сервисы и конфигурация приложения пока не изменены.
-Владелец выбрал существующий VPS Timeweb с отдельным сервисом после проверки
-ресурсов. Позднее явно поручил **чистый** `/var/lib/beini`: локальный журнал
-№12540 не переносить и не удалять. Это заменяет первоначальное требование
-определить журнал для переноса. Не создавать реальных заказов для проверки. SSH-доступ проверен. Ubuntu 24.04.4, Nginx 1.24, x86_64; 8080 свободен,
-доступно около 590 МБ RAM и 9,7 ГБ диска. Nginx config test проходит;
-прежнее предупреждение protocol options в supabase-proxy не меняется.
+Один публичный HTTPS origin для frontend и Go API; свежие меню/стопы,
+работающая корзина и оформление, состояние после restart, безопасный откат.
+Не создавать реальные заказы, не подключать Telegram и QR.
+Публичная приёмка ещё не выполнена; наличие backend на VPS не означает её успех.
 
 ## Контекст и решения
 
-- Прочитаны AGENTS.md, README.md, operations, architecture, testing,
-  confirmed-context-2026-11-01 и live-check-2026-11-02.
-- GitHub main совпадает с локальным d3c1a24. Незакоммиченный документ
-  `iiko-empty-api-diagnosis-2026-11-02.md` принадлежит другой работе; не включать
-  его в commit и не изменять.
-- WHOIS 2 ноября: регистратор `REGRU-RU`, домен зарегистрирован/делегирован,
-  оплачен до 1 ноября 2027. NS: `ns1.reg.ru`, `ns2.reg.ru`.
-  Apex и www имеют A `95.163.244.138`; AAAA при проверке не получен.
-  В браузере https://beinirest.ru/ — парковочная страница REG.RU.
-  Это уточняет прежнюю запись о домене в Timeweb; VPS ещё не идентифицирован.
-- Подключённого плагина Timeweb поиск не нашёл. Локальный `ssh` доступен,
-  SSH config отсутствует; доступ к целевому серверу не проверен.
-- Локальный Docker CLI установлен, Engine не запущен. Dockerfile копирует
-  `data/`, но `.dockerignore` исключает PNG. Compose не передаёт state dir,
-  не монтирует постоянное состояние и открывает 8080 на всех интерфейсах.
-  Docker-сборка и контейнерный запуск не проверены.
-- Вариант реализации для согласования: Linux VPS, нативный Go binary + systemd и имеющийся
-  reverse proxy. Это сохраняет стек и не требует Docker. Отдельный VPS проще
-  изолировать; существующий Timeweb допустим только после согласования и
-  read-only инвентаризации ресурсов, портов, firewall и конфигов другого проекта.
-  Если на сервере Caddy/Traefik вместо Nginx, использовать имеющийся proxy;
-  не устанавливать конкурирующий listener на 80/443.
+- Владелец выбрал существующий VPS Timeweb: Ubuntu 24.04.4 LTS, Nginx 1.24,
+  x86_64; SSH root@72.56.232.231:22 по уже установленному локальному ключу.
+  Перед работой: доступно около 590 МБ RAM и 9,7 ГБ диска; 8080 свободен.
+- Поручено: отдельный beini.service на **127.0.0.1:8080**, не менять
+  /var/www/avtorstudio и /etc/nginx/sites-available/avtorstudio.com,
+  не дублировать map; nginx -t перед каждым reload/restart Nginx.
+- Позднее уточнение владельца: **создать чистый /var/lib/beini**, локальный
+  журнал теста №12540 не переносить. Старый локальный журнал не удалялся.
+  Это заменяет первоначальный пункт поиска журнала для переноса.
+- Домен beinirest.ru по WHOIS зарегистрирован и припаркован в REG.RU
+  (REGRU-RU), NS ns1.reg.ru/ns2.reg.ru. Начальные A apex/www — 95.163.244.138.
+  Требуемые A apex/www — 72.56.232.231; остальные записи и NS сохранить.
+- Владелец разрешил действовать самостоятельно и вошёл в REG.RU в обычном
+  Chrome. Встроенная браузерная вкладка не получила эту сессию.
+  Управление обычным Chrome остановлено инструментом: невозможно достоверно
+  определить текущий URL для контроля доступа. После остановки действия в этом
+  окне не выполнялись. DNS через него не изменены; альтернативный доступ к DNS
+  не получен. Не считать исходный IP парковки IP сервера.
+- Документ другой работы docs/tasks/iiko-empty-api-diagnosis-2026-11-02.md
+  сохранён без изменений и не включён в commit. Исходный SHA-256:
+  67FD1EEEC493796393E05F5E4B87849F6584DB54EE14AD8E2D9FA2D96D994633.
 
 ## Сделано
 
-1. Проверены Git/CI, DNS, WHOIS и текущая страница домена, состав Docker.
-2. Выполнена полная offline-проверка с разрешённым loopback.
-3. Подготовлен ниже конкретный проект изменений. Он ещё не применён.
-
-## Первоначальный проект изменений
-
-Проект ниже сохранён как основание подготовки. Уточнение о чистом state выше
-заменяет раздел переноса; актуальные исполняемые конфиги находятся в `deploy/`.
-Параметр HTTP_LISTEN_ADDR уже реализован и проверяется regression-тестами.
-
-### Размещение, сервис и секреты
-
-Предлагаемые серверные пути (не подтверждённые существующие каталоги):
-
-| Путь | Назначение и права |
-|---|---|
-| `/opt/beini/releases/<commit>/bin/beini-server` | неизменяемый binary, root:root, 0755 |
-| `/opt/beini/releases/<commit>/public/` | index/demo, css/js/assets и data/menu_catalog.json; root:root |
-| `/opt/beini/current` | ссылка на выбранный релиз |
-| `/etc/beini/iiko_config.json` | конфигурация из локального секрета, root:beini, 0640 |
-| `/etc/beini/service.env` | параметры запуска без Telegram, root:beini, 0640 |
-| `/var/lib/beini` | BEINI_STATE_DIR, beini:beini, 0700; вне checkout/web root |
-| `/var/backups/beini` | закрытая резервная копия перед переносом, root:root, 0700 |
-
-Системная учётная запись `beini` без интерактивного входа. Один процесс/writer.
-Конфигурация читается из WorkingDirectory; .env приложение не загружает.
-Секреты передаются только по согласованному защищённому SSH-каналу, не в образе,
-аргументах команды, Git, frontend или выводе проверки. Telegram ENV не задавать.
-
-До запуска требуется небольшая инфраструктурная правка кода: явный
-`HTTP_LISTEN_ADDR=127.0.0.1:8080` с сохранением прежнего PORT по умолчанию.
-**Сейчас такой переменной в коде нет**; существующий сервер слушает `:<PORT>`.
-Нельзя считать следующий проект unit рабочим до реализации и проверки bind.
-Дополнительно убрать имя гостя из iiko-лога, исключить сырые тела ответов iiko
-из ошибок/логов и проверить это mock-тестами. HTTP-логи не должны содержать
-тела заказов, заголовки авторизации, ключи идемпотентности или query string.
-
-Проект `/etc/beini/service.env`:
-
-```ini
-HTTP_LISTEN_ADDR=127.0.0.1:8080
-STATIC_DIR=/opt/beini/current/public
-BEINI_STATE_DIR=/var/lib/beini
-ALLOWED_ORIGINS=https://beinirest.ru,https://www.beinirest.ru
-TZ=Europe/Moscow
-```
-
-ALLOWED_ORIGINS обязателен и для браузерного POST с одного origin:
-текущий middleware проверяет переданный Origin; default содержит beini.ru,
-а не beinirest.ru. Типы заказов/оплаты сохраняются из действующего JSON.
-
-Проект `/etc/systemd/system/beini.service`:
-
-```ini
-[Unit]
-Description=BEINI web application
-Wants=network-online.target
-After=network-online.target
-StartLimitIntervalSec=60
-StartLimitBurst=5
-
-[Service]
-Type=simple
-User=beini
-Group=beini
-WorkingDirectory=/etc/beini
-EnvironmentFile=/etc/beini/service.env
-ExecStart=/opt/beini/current/bin/beini-server
-Restart=on-failure
-RestartSec=5
-TimeoutStopSec=60
-UMask=0077
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectHome=true
-ProtectSystem=strict
-ReadWritePaths=/var/lib/beini
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=beini
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Перед применением: `systemd-analyze verify` на целевой OS, проверить наличие
-пользователя/каталогов и свободный порт 8080. Не перезапускать другой проект.
-Хранение journald ограничить согласованной политикой; не менять глобальную
-настройку журналов других сервисов без отдельного основания.
-
-### HTTPS и DNS
-
-В имеющемся Nginx добавить отдельный vhost только для beinirest.ru/www.
-Перед началом сохранить его действующую конфигурацию. В блоке HTTPS:
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name beinirest.ru www.beinirest.ru;
-    ssl_certificate /etc/letsencrypt/live/beini/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/beini/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    access_log off;
-    client_max_body_size 64k;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 60s;
-        proxy_cache off;
-    }
-}
-```
-
-Proxy перезаписывает IP-заголовки клиента; Go доверяет им только с loopback.
-Для 80 — отдельный ACME webroot `/var/lib/beini-acme` (не state dir) и редирект
-остальных запросов на HTTPS. Сертификат получить через webroot без автоматической
-перезаписи других Nginx-конфигов, включить/проверить его продление и reload hook.
-Сначала HTTP/ACME и сертификат, затем TLS-конфиг; `nginx -t` до каждого reload.
-
-После согласования точного IP заменить **только** A apex/www. Проверить CAA,
-TTL и отсутствие конфликтующего AAAA; NS, MX/TXT и записи других проектов
-сохранить. Проверить локально vhost через Host/SNI до переключения DNS.
-8080 должен слушать только loopback; снаружи доступны лишь существующие
-разрешённые порты, включая 80/443. Firewall сначала прочитать, общий ruleset
-не сбрасывать. Не считать текущий IP парковки адресом VPS.
-
-### Перенос состояния и перезапуск
-
-**Источник пока не установлен.** BEINI_STATE_DIR не задан в текущей shell.
-В проверенных временных каталогах обнаружены только тестовые журналы;
-они не являются источником переноса. Не создавать пустой production-журнал
-вместо реального и не выбирать «самый новый» файл без сверки.
-
-1. Установить путь к журналу согласованного теста с ID
-   `a26f6699-ea9e-4385-945d-9d7b8e05cf25` (заказ №12540). Проверять метаданные
-   и принадлежность организации/терминалу без вывода контактов или ключей.
-2. Остановить прежний writer, исключить его автоматический повторный запуск.
-   Согласовать окно переноса. Зафиксировать размер/hash каждого файла в
-   закрытом локальном manifest, создать защищённую копию после остановки.
-3. Передать **этот** `orders.jsonl`, существующий `notifications.jsonl` и
-   `menu-cache.json` без редактирования. Отсутствие receipts документировать,
-   не подменять другим журналом. Новый сервер не запускать параллельно старому.
-4. На сервере проверить hash, права 0700/0600 и конфигурацию организации,
-   терминала и externalMenuId=96634. Накопленные уведомления не отправлять.
-5. Запустить сервис, проверить health и свежесть меню/стопов. Записать закрытый
-   manifest и наблюдаемый GET статуса существующей попытки (без POST).
-6. Выполнить один `systemctl restart beini`; подтвердить новый PID, health,
-   сохранение старого префикса журналов и GET того же статуса. Журналы могут
-   дописываться при штатной сверке: общий hash после рестарта не обязан совпасть.
-   Не удалять/откатывать journals ради «чистого» запуска.
-
-### Откат
-
-Сохранять минимум предыдущий совместимый релиз и закрытый manifest активного.
-Откатывать только код: остановить **beini**, атомарно переключить `/opt/beini/current`
-на предыдущий проверенный релиз, запустить beini, проверить bind/health/menu/status.
-`/var/lib/beini`, orders.jsonl и notifications.jsonl не заменять и не откатывать.
-При необходимости вернуть только BEINI-vhost из сохранённой копии и выполнить
-`nginx -t`/reload, не заменяя конфигурацию другого проекта.
-
-Первое размещение не имеет предыдущего боевого релиза: безопасный аварийный
-вариант — остановить beini и отдавать 503 на его vhost, сохранив всё состояние.
-Исходный d3c1a24 без loopback bind не считать совместимым откатом автоматически.
-Возврат на старый локальный сервер требует переноса **актуальных** журналов
-и гарантии единственного writer. Нельзя запускать его со старой копией.
+- Добавлен HTTP_LISTEN_ADDR с прежним PORT fallback; явный неверный адрес
+  не вызывает fallback на публичный listener. Реальный bind проверен тестом.
+- Из лога iiko убрано имя гостя, из ошибок — сырые upstream body.
+  Regression-тесты воспроизвели утечки до правок и прошли после них.
+- Подготовлены deploy/beini.service, ENV, отдельные HTTP/HTTPS vhost, Certbot
+  hook и настройки отдельного namespace journald (32 МБ, 14 дней).
+- Добавлена сборка scripts/package-release.py. Архив fe7420d проверен:
+  82 entries, 3 PNG, seed присутствует, binary 0755, конфигов/журналов нет;
+  SHA-256 каждого файла проверен на сервере по release.json.
+- На VPS созданы только отдельные пользователь beini, каталоги BEINI и ACME;
+  релиз /opt/beini/releases/fe7420d949fb6f9bbac64bed7cba229ae1e6ead6,
+  ссылка /opt/beini/current. Секрет передан по SSH в /etc/beini/iiko_config.json,
+  root:beini 0640; каталог /etc/beini 0750. Значения не выводились.
+- beini.service enabled/active, HTTP только 127.0.0.1:8080, MemoryMax 192M.
+  Наблюдалось около 6,7 МБ MemoryCurrent, NRestarts=0 после запуска.
+- /var/lib/beini — beini:beini 0700, orders.jsonl и menu-cache.json — 0600.
+  Production orders пустой: реальные заказы не отправлялись. Telegram отключён,
+  production notifications.jsonl не создавался.
+- Добавлены только /etc/nginx/sites-available/beinirest.ru и ссылка sites-enabled.
+  Сейчас это HTTP/ACME bootstrap: **503 для приложения**, challenge webroot
+  /var/lib/beini-acme. HTTPS-конфиг ещё не установлен, сертификата BEINI нет.
+  После nginx -t выполнен reload, не restart. Сразу после reload первый запрос
+  ещё обслужился старой конфигурацией; последующий GET/HEAD подтвердил 503.
+- Certbot уже установлен; существующий certbot.timer работает, одна ACME
+  регистрация найдена. Добавлен отдельный deploy hook, действующий только для
+  lineage /etc/letsencrypt/live/beini и выполняющий nginx -t перед reload.
+- Обычный push fe7420d в origin/codex/public-deployment выполнен. Main пока
+  на момент первичного push оставался d3c1a24; далее подготовлена fast-forward
+  интеграция вместе с этим отчётом, без force-push.
 
 ## Проверки
 
-Фактически выполнено 2 ноября 2026:
+- Исходный GitHub CI d3c1a24: Windows/Linux success, run 41435872963;
+  Pages success, run 41435872120.
+- Новый GitHub CI fe7420d: оба jobs Windows/Linux success,
+  https://github.com/XDobriev/beini/actions/runs/41440891260.
+- Полная python scripts/check.py после изменений: All checks passed.
+  Go tests/vet/build, JS/checkout, 14 Python-тестов, 35 согласованных блюд.
+  Sandbox требует разрешённого loopback; боевые ключи проверка не использует.
+- Read-only code/config review immutable d3c1a24..fe7420d: Important/Critical
+  замечаний нет. Minor: packager собирает текущую working directory, поэтому
+  untracked Go-файлы теоретически могут повлиять на binary. В этой сборке
+  untracked только чужой Markdown; исходники и manifest соответствуют commit.
+- VPS: systemd-analyze verify прошёл; health 200; menu 200/no-store, 35 items,
+  orderingAvailable=true, menuStale=false, stopListStale=false. Origin preflight
+  https://beinirest.ru разрешён; POST заказа не выполнялся.
+- 11 private/missing путей localhost возвращают 404: config, .env/.git,
+  orders/notifications/cache, seed, backup, исходник, missing asset/API.
+  67 публичных файлов релиза (включая все фото/PNG/JS/CSS/HTML) — 200;
+  assets/images/instagram/manifest.json ожидаемо 404 как служебный JSON.
+- avtorstudio.com после reload — HTTP 200. Его Nginx config SHA-256 до/после:
+  80da1488dcfa7ff5b2389d2e11d1b3d382dc297dc5175c0238dbd5f39e8b82a9.
+  Отпечаток имён/размеров/mtime всего /var/www/avtorstudio также совпал:
+  90b08b0fbdf6dbe53d4e92f5cc63f6e4085ceb9be63973a6fd657beb94e5b013.
+- nginx -t проходит с прежним предупреждением protocol options redefined
+  в supabase-proxy. Его конфиг и настройки firewall не менялись.
+- Внешние probes из текущей Windows-сети с подменённым Host маршрутизируются
+  к парковке REG.RU (Server: openresty), а не к указанному IP. TCP connect 8080
+  создаётся, но HTTP-ответа нет. Это не доказательство доступности/закрытости
+  порта с обычного интернета; loopback bind подтверждён ss на VPS.
 
-- GitHub Checks для d3c1a24: success, оба jobs Windows/Linux:
-  https://github.com/XDobriev/beini/actions/runs/41435872963.
-- Pages build/deployment: success:
-  https://github.com/XDobriev/beini/actions/runs/41435872120.
-- `python scripts/check.py`: All checks passed с разрешённым loopback;
-  Go tests/vet/build, JS, checkout, 14 Python-тестов, 35 согласованных блюд.
-  Первый sandbox-прогон падал из-за запрета loopback-сокетов; код ради этого
-  не менялся. Проверка не вызывает реальную кассу.
-- DNS/WHOIS и HTTP/HTTPS проверены read-only; браузер подтвердил парковку REG.RU.
+Дополнительная проверка VPS:
 
-Обязательные проверки **после реализации и размещения**, пока не выполнены:
-
-- Полная scripts/check.py; regression-тесты bind и отсутствия секретов/контактов
-  в логах и ошибках; сборка Linux для фактической архитектуры VPS.
-- Desktop 1440x1000 / mobile 390x844: меню, поиск «люля», фото/логотипы,
-  корзина, суммы, открытие оформления без отправки. Нет горизонтального overflow.
-- Публичный `/api/menu`: JSON/no-store, наблюдаемая свежесть меню и стопов,
-  server prices и checkout enabled по действительным данным, HTTPS без ошибок.
-- `/api/health`, API 404 и корректные 404 ассетов. Конфиги, `.env`, `.git`,
-  `data/menu_catalog.json`, orders/notifications и backup-файлы по HTTP недоступны.
-  Не проверять защиту выдачей содержимого секретов в вывод.
-- HTTPS-редирект, валидный сертификат обоих имён и механизм продления;
-  внешний порт 8080 закрыт, корректные IP/Origin, другой проект продолжает работать.
-- Фактический restart с сохранённым журналом и GET статуса, как описано выше.
-- Один внешний кассовый тест — только отдельным согласованием присутствия
-  владельца, состава теста и отмены. Прошлый №12540 ещё не подтверждён отменённым.
+- Реальный `systemctl restart beini`: новый PID, существующий пустой
+  orders.jsonl сохранил inode и SHA-256, menu-cache.json остался на диске.
+  После рестарта health 200, orderingAvailable=true, menuStale/stopListStale=false;
+  beini enabled/active, systemd-journald@beini active.
+- Linux-бинарник тестов из fe7420d выполнен на VPS: TestApplicationMenuOrderRestart
+  confirmed/rejected/lost-response — PASS; оба теста bind/fallback — PASS.
+  Только mock iiko и /var/lib/beini-verification; production конфигурация не читалась.
+  Непустое восстановление подтверждено синтетическими заказами, без кассы.
 
 ## Осталось
 
-1. Получить адрес выбранного VPS Timeweb и способ защищённого доступа, согласовать этот проект
-   изменений. Прочитать серверную конфигурацию до адаптации unit/proxy.
-2. Найти и подтвердить источник state; не принимать тестовые журналы за боевые.
-3. Реализовать и проверить минимальные инфраструктурные правки, подготовить
-   релиз, адаптировать конфиги к фактической OS/proxy.
-4. После согласования автономно развернуть, переключить DNS, проверить HTTPS,
-   браузер desktop/mobile и сохранение состояния после рестарта.
-5. Обновить README/operations/architecture по факту, выполнить Conventional Commit
-   и обычный push без force, проверить CI нового commit. Чужой документ не добавлять.
+1. Получить рабочее подключение к авторизованной панели REG.RU с проверяемым URL
+   либо безопасный API-доступ. Владелец просит менять DNS самостоятельно; не
+   требовать повторного согласования двух A-записей, если доступ восстановлен.
+2. Изменить только A apex/www на VPS, проверить authoritative DNS/CAA/AAAA.
+   Выпустить beini через существующий ACME account и webroot, установить
+   deploy/nginx-https.conf, nginx -t, reload; проверить renewal dry-run.
+3. Публичный desktop/mobile: меню, поиск, изображения, корзина и оформление
+   без отправки. Проверить HTTPS, freshness/no-store, приватные пути, внешний
+   8080, логи. Пока эти проверки НЕ выполнены.
+4. По завершении публикации обновить итоговые документы, выполнить проверки,
+   Conventional Commit и обычный push; проверить CI. Чужой документ сохранить.
 
-## Блокеры и вопросы
+## Блокеры и ограничения
 
-- Существующий VPS Timeweb выбран, но его адрес и конкретные изменения после
-  инвентаризации ещё не согласованы.
-- Нет проверенного SSH-доступа и инвентаризации сервера.
-- Не установлен путь к действующему журналу заказа №12540.
-- Внешняя кассовая приёмка/отмена теста и Telegram в этой работе не выполняются
-  без отдельного поручения. Публичный checkout и production-restart не подтверждены.
+- Публичное приложение на beinirest.ru ещё не запущено: DNS указывает на парковку,
+  сертификат BEINI не выдан. Нельзя выдавать парковку HTTPS за HTTPS приложения.
+- Browser UI был остановлен из-за невозможности определить URL, не из-за отказа
+  владельца. Не обходить остановку продолжением действий в той же UI-сессии.
+- Новых реальных заказов нет. Отмена прежнего №12540 по-прежнему не подтверждена;
+  публичную кассовую приёмку проводить отдельно с владельцем и отменой теста.
+- Непустое восстановление заказа проверяется mock-тестами; пустой production
+  journal/cache сами по себе не доказывают восстановление реального заказа.
+- Telegram, оплата/фискализация и условия доставки не включены в работу.
 
-## Следующий шаг
+## Откат и следующий шаг
 
-Владелец указывает SSH alias либо адрес выбранного VPS, пользователя и порт
-(секреты — локально, не в чат) и путь к исходному каталогу состояния, если он известен.
-После этого выполнить read-only инвентаризацию и согласовать отличия от проекта выше.
+Инструкция: docs/deployment.md. Сейчас это первый релиз без предыдущего боевого:
+при аварии остановить только beini; его HTTP-vhost уже отдаёт 503. Сохранить
+/var/lib/beini, не откатывать orders.jsonl/notifications.jsonl. Другой проект
+не перезапускать и его конфиги не заменять.
+
+Следующий инфраструктурный шаг — восстановить разрешённый доступ к REG.RU и
+внести две уже согласованные A-записи; затем закончить HTTPS и публичную приёмку.
+
+## Отдельная следующая задача
+
+Владелец 2 ноября попросил разобрать неполноту меню в новом чате. Сейчас seed
+содержит 35 позиций; iiko v3 отдавал 313 продуктов/34 группы, в allowlist35
+находились 33 ID. Полный импорт/категории/поддерживаемые варианты требуют
+отдельной диагностики; это не часть инфраструктурной публикации.

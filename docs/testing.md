@@ -10,6 +10,12 @@
 
 ## Общая команда
 
+Подготовка VPS 2 ноября: добавлены regression-тесты реального loopback bind
+через HTTP_LISTEN_ADDR, запрета fallback при неверном explicit address,
+отсутствия имени гостя в логах и сырых upstream body в ошибках.
+Полная проверка и CI Windows/Linux на fe7420d прошли. Фактические серверные
+и оставшиеся публичные проверки: [развёртывание](tasks/public-deployment-2026-11-02.md).
+
 ```sh
 python scripts/check.py
 ```
