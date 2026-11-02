@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -92,11 +93,16 @@ func (s *Service) RefreshMenu(ctx context.Context) error {
 		it.UnavailableReason = "not_sellable"
 		if p, ok := prods[productKey(it.IikoID)]; ok {
 			price, ok := salePrice(p)
-			if ok {
+			if ok && reviewedName(p.Name) != reviewedName(it.SourceName) {
+				it.UnavailableReason = "identity_review_required"
+			} else if ok {
 				it.Price = price
-				it.Sellable = reviewed.Available
+				it.Sellable = reviewed.Available && !reviewed.Hidden
 				it.Available = it.Sellable && !stops[productKey(it.IikoID)]
 			}
+		}
+		if reviewed.Hidden {
+			it.UnavailableReason = "editorial_hidden"
 		}
 		if it.Available {
 			it.UnavailableReason = ""
@@ -114,6 +120,10 @@ func (s *Service) RefreshMenu(ctx context.Context) error {
 	s.store.RecordAttempt(true, attempt, "")
 	s.store.RecordAttempt(false, menuAt, "")
 	return nil
+}
+
+func reviewedName(name string) string {
+	return strings.Join(strings.Fields(strings.ReplaceAll(strings.ToLower(name), "ё", "е")), " ")
 }
 
 func (s *Service) RefreshStopList(ctx context.Context) error {

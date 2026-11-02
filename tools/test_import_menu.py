@@ -5,6 +5,7 @@ tools/test_import_menu.py — Автоматические тесты для и�
 """
 
 import json
+import io
 import sys
 import tempfile
 import unittest
@@ -29,6 +30,36 @@ from import_menu import (
 
 
 class TestMenuImport(unittest.TestCase):
+
+    def test_legacy_apply_cannot_rewrite_reviewed_v3_seed_or_fetch(self):
+        import import_menu
+        catalog_path = self.root / 'data' / 'menu_catalog.json'
+        catalog_path.parent.mkdir()
+        (self.root / 'js').mkdir()
+        original = json.dumps({'categories': [], 'items': [dict(self.valid_dish, sourceName='Люля-кебаб')]}).encode()
+        catalog_path.write_bytes(original)
+        with patch.object(import_menu, 'get_repo_root', return_value=self.root), \
+                patch.object(sys, 'argv', ['import_menu.py', '--fetch', '--apply']), \
+                patch.object(import_menu, 'load_config', return_value={}), \
+                patch.object(import_menu, 'fetch_live_nomenclature', return_value={'revision': 1, 'products': [{'id': self.valid_dish['iikoId'], 'isDeleted': True}]}) as fetch, \
+                patch.object(import_menu, 'fetch_live_stop_lists', return_value=set()), \
+                patch.object(sys, 'stdout', io.StringIO()), patch.object(sys, 'stderr', io.StringIO()):
+            with self.assertRaises(SystemExit) as result:
+                import_menu.main()
+            self.assertEqual(result.exception.code, 2)
+            fetch.assert_not_called()
+        self.assertEqual(catalog_path.read_bytes(), original)
+
+    def test_export_preserves_new_categories_and_hides_new_products(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'menu.js'
+            catalog = {'categories': [{'id': 'breakfasts', 'name': 'Завтраки', 'sortOrder': 1}],
+                       'items': [dict(self.valid_dish, id='breakfast', category='breakfasts'),
+                                 dict(self.valid_dish, id='new', category='breakfasts', hidden=True)]}
+            export_js_menu_data(catalog, output)
+            text = output.read_text(encoding='utf-8')
+            self.assertIn('breakfast', text)
+            self.assertNotIn('"id": "new"', text)
 
     def test_official_sale_flags(self):
         product = {

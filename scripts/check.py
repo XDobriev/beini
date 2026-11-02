@@ -28,8 +28,12 @@ def main():
             ("Checkout persistence", ["node", "scripts/check-checkout.cjs"]),
             ("Menu syntax", ["node", "--check", "js/menu-data.js"]),
             ("Menu consistency", ["node", "scripts/check-menu.cjs"]),
+            ("Generated menu", [sys.executable, "-B", "tools/export_menu.py", "--check"]),
+            ("Menu UI contract", ["node", "scripts/check-menu-ui.cjs"]),
             ("Importer tests", [sys.executable, "-B", "-m", "unittest", "discover",
                                 "-s", "tools", "-p", "test_import_menu.py"]),
+            ("V3 audit tests", [sys.executable, "-B", "-m", "unittest", "discover",
+                               "-s", "tools", "-p", "test_audit_menu_v3.py"]),
             ("Menu audit", [sys.executable, "-B", "tools/import_menu.py", "--check"]),
         ]
         failed = []

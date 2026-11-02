@@ -24,7 +24,7 @@ function index(items, label) {
   return result;
 }
 
-const expected = index(catalog.items.filter(item => item.available !== false), 'JSON');
+const expected = index(catalog.items.filter(item => item.available !== false && !item.hidden), 'JSON');
 const actual = index(menu.flatMap(section => section.items.map(item => ({
   ...item, category: section.category
 }))), 'JS');

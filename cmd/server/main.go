@@ -58,7 +58,7 @@ func safeFileServer(dir string) http.Handler {
 				return
 			}
 			// Блокируем доступ к служебным директориям бэкенда
-			if lowerSeg == "internal" || lowerSeg == "cmd" || lowerSeg == "tools" || lowerSeg == "scratch" || lowerSeg == "data" {
+			if lowerSeg == "internal" || lowerSeg == "cmd" || lowerSeg == "tools" || lowerSeg == "scratch" || lowerSeg == "data" || lowerSeg == "docs" {
 				http.NotFound(w, r)
 				return
 			}

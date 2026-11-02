@@ -107,3 +107,9 @@ func TestRejectInvalidSnapshotsAndSeed(t *testing.T) {
 		t.Fatal("invalid freshness accepted")
 	}
 }
+
+func TestSeedRequiresReviewedSourceName(t *testing.T) {
+	if _, err := ReadSeed(strings.NewReader(`{"categories":[{"id":"grill","name":"Мангал"}],"items":[{"id":"one","iikoId":"uuid","name":"Рибай","price":100,"category":"grill","available":true}]}`)); err == nil {
+		t.Fatal("seed without verified source identity accepted")
+	}
+}

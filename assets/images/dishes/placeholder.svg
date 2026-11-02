@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="224" height="224" viewBox="0 0 224 224">
+  <rect width="224" height="224" fill="#F1EDE3"/>
+  <circle cx="112" cy="96" r="38" fill="none" stroke="#66756B" stroke-width="3"/>
+  <circle cx="112" cy="96" r="27" fill="none" stroke="#66756B" stroke-width="2"/>
+  <path d="M57 60v35m-7-35v20q0 9 7 9t7-9V60m-7 35v36m110-71q-12 12-12 32h12m0-32v71" fill="none" stroke="#66756B" stroke-width="3" stroke-linecap="round"/>
+  <text x="112" y="166" text-anchor="middle" fill="#5B6B60" font-family="Arial,sans-serif" font-size="14">Фото блюда</text>
+  <text x="112" y="185" text-anchor="middle" fill="#5B6B60" font-family="Arial,sans-serif" font-size="14">пока нет</text>
+</svg>

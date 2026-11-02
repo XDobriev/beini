@@ -6,16 +6,17 @@
   const CART_KEY = 'beini_cart';
   const ORDER_KEY = 'beini_order_attempt';
   const CART_PRICES_KEY = 'beini_cart_prices';
-  const CAT_ORDER = ['eastern', 'grill', 'soups', 'salads', 'sushi', 'pizza', 'desserts', 'drinks'];
-  const CAT_NAMES = { eastern: 'Национальная и восточная', grill: 'Мангал и стейки', soups: 'Супы', salads: 'Салаты и закуски', sushi: 'Роллы', pizza: 'Пицца и выпечка', desserts: 'Десерты', drinks: 'Кофе и бар' };
-  const CAT_SHORT = { eastern: 'Национальная', grill: 'Мангал', soups: 'Супы', salads: 'Салаты', sushi: 'Роллы', pizza: 'Пицца', desserts: 'Десерты', drinks: 'Напитки' };
+  const CAT_ORDER = ['eastern', 'grill', 'hot', 'soups', 'salads', 'sushi', 'pizza', 'breakfasts', 'sides', 'desserts', 'drinks'];
+  const IMAGE_PLACEHOLDER = 'assets/images/dishes/placeholder.svg';
+  const CAT_NAMES = { breakfasts: 'Завтраки', hot: 'Горячие блюда', sides: 'Гарниры и соусы', eastern: 'Национальная и восточная', grill: 'Мангал и стейки', soups: 'Супы', salads: 'Салаты и закуски', sushi: 'Роллы', pizza: 'Пицца и выпечка', desserts: 'Десерты', drinks: 'Кофе и бар' };
+  const CAT_SHORT = { breakfasts: 'Завтраки', hot: 'Горячее', sides: 'Гарниры', eastern: 'Национальная', grill: 'Мангал', soups: 'Супы', salads: 'Салаты', sushi: 'Роллы', pizza: 'Пицца', desserts: 'Десерты', drinks: 'Напитки' };
   const ZONES = ['Кабинка до 10 гостей', 'Основной зал', 'Банкет'];
   const TIMES = ['13:00', '15:00', '17:00', '19:00', '21:00'];
   const GUESTS = ['2', '4', '6', '8', '10+'];
   const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const REELS = ['reel_10', 'reel_11', 'reel_12', 'reel_13', 'reel_15', 'reel_17'];
 
-  // Валидация требований к отображаемым блюдам: iiko ID, цена > 0, категория, существующая картинка
+  // Проверяем идентификатор, цену и безопасную категорию. Фото может быть заменено заглушкой.
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function isValidDish(dish, cat) {
     if (!dish || typeof dish !== 'object') return false;
@@ -23,23 +24,23 @@
     if (!dish.iikoId || typeof dish.iikoId !== 'string' || !UUID_RE.test(dish.iikoId.trim())) return false;
     // 2. Цена: число строго больше 0
     if (typeof dish.price !== 'number' || isNaN(dish.price) || dish.price <= 0) return false;
-    // 3. Категория: должна входить в допустимый список CAT_ORDER
+    // 3. Категории из серверного каталога, включая новые, имеют безопасные ID.
     const dishCat = cat || dish.category;
-    if (!dishCat || !CAT_ORDER.includes(dishCat)) return false;
-    // 4. Картинка: обязательна непустая строка пути
-    if (!dish.image || typeof dish.image !== 'string' || dish.image.trim() === '') return false;
+    if (!dishCat || !/^[a-z][a-z0-9-]{0,63}$/.test(dishCat)) return false;
+    if (dish.hidden === true) return false;
+    // Для отсутствующего фото renderMenu использует нейтральную заглушку.
     return true;
   }
 
   const rawMenu = (typeof MENU_DATA !== 'undefined' && Array.isArray(MENU_DATA)) ? MENU_DATA : [];
   let menu = rawMenu
-    .filter(c => c && CAT_ORDER.includes(c.category) && Array.isArray(c.items))
+    .filter(c => c && /^[a-z][a-z0-9-]{0,63}$/.test(c.category) && Array.isArray(c.items))
     .map(c => ({
       ...c,
       items: c.items.filter(i => isValidDish(i, c.category))
     }))
     .filter(c => c.items.length > 0)
-    .sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category));
+    .sort((a, b) => (CAT_ORDER.includes(a.category) ? CAT_ORDER.indexOf(a.category) : CAT_ORDER.length) - (CAT_ORDER.includes(b.category) ? CAT_ORDER.indexOf(b.category) : CAT_ORDER.length));
 
   const dishes = {};
   menu.forEach(c => c.items.forEach(i => {
@@ -176,13 +177,13 @@
         <h3 class="h3">${esc(CAT_NAMES[c.category] || c.categoryName)}</h3>
         ${c.items.map(i => `
           <article class="dish">
-            <img src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy" width="112" height="112" onerror="this.onerror=null;this.classList.add('img-fallback');">
+            <img src="${esc(i.image || IMAGE_PLACEHOLDER)}" alt="${esc(i.name)}" loading="lazy" width="112" height="112" onerror="this.onerror=null;this.src='assets/images/dishes/placeholder.svg';">
             <div class="dish-body">
               ${i.badge ? `<div class="dish-badge">${esc(i.badge)}</div>` : ''}
               <div class="dish-name">${esc(i.name)}</div>
               <div class="dish-desc">${esc(i.description)}</div>
               <div class="dish-foot">
-                <span class="price">${fmt(i.price)} ₽ <span class="weight">· ${esc(i.weight)}</span></span>
+                <span class="price">${fmt(i.price)} ₽ ${i.weight ? `<span class="weight">· ${esc(i.weight)}</span>` : ''}</span>
                 <span class="dish-ctl" data-id="${i.id}">${dishControl(i.id)}</span>
               </div>
             </div>
@@ -368,7 +369,7 @@
       body = `
         ${lines.map(l => `
           <div class="sheet-row">
-            <img src="${esc(l.dish.image)}" alt="">
+            <img src="${esc(l.dish.image || IMAGE_PLACEHOLDER)}" alt="">
             <div><div class="cart-row-name">${esc(l.dish.name)}</div><div class="cart-row-sum">${fmt(l.qty * l.dish.price)} ₽</div></div>
             ${miniStep(l)}
           </div>`).join('')}
@@ -440,7 +441,7 @@
       const previous = { ...dishes };
       Object.keys(dishes).forEach(id => { delete dishes[id]; });
       menu = data.categories.slice().sort((a, b) => a.sortOrder - b.sortOrder).map(c => ({
-        category: c.id, name: c.name,
+        category: c.id, categoryName: c.name,
         items: data.items.filter(i => i.category === c.id && isValidDish(i, c.id)).map(i => ({ ...i, available: state.menuReady && i.available === true }))
       })).filter(c => c.items.length);
       menu.forEach(c => c.items.forEach(i => { dishes[i.id] = i; }));

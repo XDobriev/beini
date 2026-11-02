@@ -1,0 +1,36 @@
+﻿local_id,old_iiko_id,new_iiko_id,source_name,price,evidence
+beini-grill-01,0ce65922-6a9f-453a-bb92-b7c35b4950bb,0ce65922-6a9f-453a-bb92-b7c35b4950bb,Люля-кебаб,590.0,unique source name + matching price + corresponding product group
+beini-grill-02,a6c8c806-47c3-429a-bfca-572b9ea16ad6,8b7ec2b2-6bca-49ac-9715-9a809ec1bf73,Шашлык из баранины,800.0,unique source name + matching price + corresponding product group
+beini-grill-03,845e4c4e-588a-4819-a742-acf535003574,6830d7c1-b4af-4871-942d-0025408dc283,Шашлык из говядины,810.0,unique source name + matching price + corresponding product group
+beini-grill-04,17ba6a67-df70-419c-ad18-c4c8ba3bf9fc,3e410594-6f0a-48a3-9f6c-17dee220de13,"Стейк ""Рибай""",1250.0,unique source name + matching price + corresponding product group
+beini-grill-05,ab871f62-beee-4925-9e37-f1ea8040d4e7,a372fd9a-ef71-4e4a-a42c-32e8f039d287,Корейка баранина,1250.0,unique source name + matching price + corresponding product group
+beini-grill-06,68e00f67-0c1e-4e78-87a2-74a718103126,aa2bf451-0747-4f39-8b7b-efa2505cf50e,Садж Ассорти,3000.0,unique source name + matching price + corresponding product group
+beini-east-01,0c2f2841-e64a-4d1a-8b18-40387aea2332,0c2f2841-e64a-4d1a-8b18-40387aea2332,Байский плов,1500.0,unique source name + matching price + corresponding product group
+beini-east-02,0ee7147c-99b9-4cd4-9926-6d03e127c374,0ee7147c-99b9-4cd4-9926-6d03e127c374,Казан кебаб,940.0,unique source name + matching price + corresponding product group
+beini-east-03,61418da0-0b48-400d-996b-262535e308f5,6228d3ba-c91c-4419-8793-d2f6e1b136cf,Ковурма лагман,480.0,unique source name + matching price + corresponding product group
+beini-east-04,92295cfb-001a-424f-8226-cd875373cf40,765989d0-6370-448f-a20e-48d4aa293e15,Ч1апильг с творогом ,200.0,unique source name + matching price + corresponding product group
+beini-east-05,479e8eeb-1440-4c6e-aeff-0173758da442,686e9b46-b854-41b7-8488-4f7ec958d42e,Дулх хьалтам с сушенным мясом,1060.0,unique source name + matching price + corresponding product group
+beini-soup-01,d8adaf66-c755-414e-8b6b-7a6c6eea4328,c1436833-dfbf-44fa-ad25-9162bc79ce79,Том-Ям,600.0,unique source name + matching price + corresponding product group
+beini-soup-02,ce554b36-f33b-4a9d-a578-6e2c113ab1f7,6a89fbba-e039-496e-8bb3-b0e5b4b5123c,Шурпа с бараниной,490.0,unique source name + matching price + corresponding product group
+beini-soup-03,d6688132-5920-4121-9120-ce1acaea07c7,76082e09-016e-4040-b35a-2fc47adc5949,Лагман,480.0,unique source name + matching price + corresponding product group
+beini-soup-04,234a164e-d3c9-49e2-8ac8-b9d9de932555,19cecea1-4a26-496c-9127-4893a2969fd8,Куриный суп с лапшой,350.0,unique source name + matching price + corresponding product group
+beini-salad-01,19624fd5-28d8-4489-81dd-4127f2471093,3ae0136b-5cb7-4fce-a503-c61253e703d1,Салат с авокадо и томатами,595.0,unique source name + matching price + corresponding product group
+beini-salad-02,b4283e38-e2b8-4f3c-b099-7ce2a9cbb79b,ca06b37a-1a90-4830-86ca-f48b5a34abbf,Хрустящий баклажан с мандаринами,495.0,unique source name + matching price + corresponding product group
+beini-salad-03,a6f7e66d-58f2-48af-b5b1-7dda59dc1919,ba5cad45-f726-41c5-9ed5-c35387a73f5f,Салат Бейни,690.0,unique source name + matching price + corresponding product group
+beini-salad-04,4b0f8db8-bafe-46e3-93da-f6f2a88a6b78,888487dd-a7e2-4199-9b45-5bd85453d70b,Цезарь с креветками,645.0,unique source name + matching price + corresponding product group
+beini-sushi-01,f587b728-f064-4071-9568-ece89e63e369,ee5ebcff-de8e-4c31-a9de-0bb5d40a8b8f,Фирменный ролл Бейни,695.0,unique source name + matching price + corresponding product group
+beini-sushi-02,2d3a5fff-be04-4e24-b573-0b754c10a82f,30ebb1f3-674b-4fbf-8928-046bdc0d0029,Филадельфия,450.0,unique source name + matching price + corresponding product group
+beini-sushi-03,85abec96-3a18-4423-b027-d0a49e017884,ab353f51-529b-4aaa-bc5f-72722f3d721c,Сливочный угорь,450.0,unique source name + matching price + corresponding product group
+beini-sushi-04,68da6741-f428-48a1-bfc1-403037a9b3a3,68e00f67-0c1e-4e78-87a2-74a718103126,Калифорния с креветками,450.0,unique source name + matching price + corresponding product group
+beini-pizza-01,8e63f4a8-5ac5-4dc1-9e9c-2de8b4246ab1,904a61ee-5425-4ed4-96ec-07943dd023f0,Пицца Пепперони,550.0,unique source name + matching price + corresponding product group
+beini-pizza-02,135c11de-49ed-43dc-a9a5-a04a89e23a3c,3c8f413c-97cb-41de-88c9-cfed377c5a65,Пицца Четыре сыра,550.0,unique source name + matching price + corresponding product group
+beini-pizza-03,dcf89927-b754-4e81-b11e-4b951a8dc1d4,c529dce2-4c75-469e-b5f7-d4b9ea4fcdd1,Пицца Цезарь,550.0,unique source name + matching price + corresponding product group
+beini-pizza-04,ccb92a01-1252-4a97-a13e-82c0d0b11f13,a2ce7c4d-f5bb-45c4-8895-eae77d379014,Пицца Маргарита,500.0,unique source name + matching price + corresponding product group
+beini-des-01,e92be764-c11e-4fb6-9cdc-fe34a866cfa7,d16e6d5b-1526-40b2-80a8-23b560ef23c7,Чизкейк Сан Себастьян,350.0,unique source name + matching price + corresponding product group
+beini-des-02,2597f13c-16fd-463c-87fb-4c950fd59aca,362ea961-2d47-440a-b15f-7031dc1504bf,Фондан,340.0,unique source name + matching price + corresponding product group
+beini-des-03,6011dcbc-32ab-456e-b9ec-acf1762ef037,75ad5411-29bf-4723-a5f0-f63a019d4b9e,Наполеон фисташковый,250.0,unique source name + matching price + corresponding product group
+beini-des-04,3e410594-6f0a-48a3-9f6c-17dee220de13,b06db7c7-b99b-4a34-a0b5-e13a5f71a23a,Торт блинный,350.0,unique source name + matching price + corresponding product group
+beini-drink-01,8682b4fc-29fb-4e92-9fd8-ff1d5b632e6e,8682b4fc-29fb-4e92-9fd8-ff1d5b632e6e,Айс кофе с урбечом,420.0,unique source name + matching price + corresponding product group
+beini-drink-02,4717da0b-1590-43f8-a00e-b611792ce315,3aa07f08-4dde-4db2-9ee9-c2fd7716a9b4,Бамбл кофе,410.0,unique source name + matching price + corresponding product group
+beini-drink-03,0202f964-b181-404a-a90d-52e8b2675878,0202f964-b181-404a-a90d-52e8b2675878,Манго-маракуйя лимонад графин,650.0,unique source name + matching price + corresponding product group
+beini-drink-04,7d7120be-356d-4ba9-a35d-1bda7da9c2c9,234a164e-d3c9-49e2-8ac8-b9d9de932555,Облепиха-маракуйя чай,380.0,unique source name + matching price + corresponding product group

@@ -1,0 +1,20 @@
+{
+  "fetched_at_utc": "2026-11-02T12:13:45.400168+00:00",
+  "snapshot_sha256": "120a0dc410264089d0fc3df9220c7fd6dc7ddd510a7cb6a4963db4847471d437",
+  "products": 313,
+  "groups": 34,
+  "modifiers": 19,
+  "missing_ids": 280,
+  "supported": 303,
+  "stopped": 10,
+  "available_if_reviewed": 293,
+  "missing_supported_available": 261,
+  "missing_technical_unsupported": 9,
+  "missing_stopped": 10,
+  "binding_verdicts": {
+    "equivalent_name": 5,
+    "different_product": 28,
+    "absent_id": 2
+  },
+  "static_runtime_price_differences": 26
+}

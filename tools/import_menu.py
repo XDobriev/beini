@@ -48,7 +48,10 @@ ALLOWED_CATEGORIES = [
     'sushi',
     'pizza',
     'desserts',
-    'drinks'
+    'drinks',
+    'breakfasts',
+    'hot',
+    'sides'
 ]
 
 CATEGORY_NAMES = {
@@ -59,7 +62,10 @@ CATEGORY_NAMES = {
     'sushi': 'Суши & Роллы',
     'pizza': 'Пицца & Выпечка',
     'desserts': 'Десерты',
-    'drinks': 'Айс-кофе & Бар'
+    'drinks': 'Кофе и напитки',
+    'breakfasts': 'Завтраки',
+    'hot': 'Горячие блюда',
+    'sides': 'Гарниры и соусы'
 }
 
 CATEGORY_ICONS = {
@@ -70,7 +76,10 @@ CATEGORY_ICONS = {
     'sushi': 'fish',
     'pizza': 'pizza',
     'desserts': 'cake',
-    'drinks': 'coffee'
+    'drinks': 'coffee',
+    'breakfasts': 'utensils',
+    'hot': 'utensils',
+    'sides': 'utensils'
 }
 
 
@@ -596,11 +605,14 @@ def export_js_menu_data(catalog: Dict[str, Any], js_path: Path) -> None:
     """
     items = catalog.get('items', [])
     # Группируем блюда по категориям с сохранением порядка
-    grouped: Dict[str, List[Dict[str, Any]]] = {c: [] for c in ALLOWED_CATEGORIES}
+    categories = sorted(catalog.get('categories', []), key=lambda c: c.get('sortOrder', 0))
+    order = [c['id'] for c in categories] or ALLOWED_CATEGORIES
+    category_names = {c['id']: c['name'] for c in categories}
+    grouped: Dict[str, List[Dict[str, Any]]] = {c: [] for c in order}
 
     for item in items:
         cat = item.get('category')
-        if cat in grouped and item.get('available', True):
+        if cat in grouped and item.get('available', True) and not item.get('hidden', False):
             # Экспортируем чистый объект блюда
             grouped[cat].append({
                 'id': item.get('id'),
@@ -611,18 +623,18 @@ def export_js_menu_data(catalog: Dict[str, Any], js_path: Path) -> None:
                 'weight': item.get('weight', ''),
                 'image': item.get('image', ''),
                 'badge': item.get('badge', ''),
-                'isHalal': item.get('isHalal', True)
+                'isHalal': item.get('isHalal', False)
             })
 
     # Собираем MENU_DATA
     menu_sections = []
-    for cat in ALLOWED_CATEGORIES:
+    for cat in order:
         cat_items = grouped[cat]
         if not cat_items:
             continue
         menu_sections.append({
             'category': cat,
-            'categoryName': CATEGORY_NAMES.get(cat, cat),
+            'categoryName': category_names.get(cat, CATEGORY_NAMES.get(cat, cat)),
             'categoryIcon': CATEGORY_ICONS.get(cat, 'utensils'),
             'items': cat_items
         })
@@ -690,6 +702,8 @@ def main():
         args.validate_only = True
 
     local_catalog = load_local_catalog(catalog_path)
+    if args.apply and any(item.get('sourceName') for item in local_catalog.get('items', [])):
+        parser.error('Legacy --apply запрещён для reviewed v3 seed. Используйте audit_menu_v3.py для сверки и export_menu.py для экспорта; стопы обновляет runtime.')
 
     # 1. Режим: Только валидация локального каталога
     if args.validate_only:

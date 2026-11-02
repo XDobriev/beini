@@ -1,0 +1,20 @@
+﻿modifier_id,name,price_rub,used_by,reason
+23558aad-a8e7-47c7-a368-5c1eb7aeb899,Грибной соус для фергана,0.0,Фергана в сливочном или кисло-сладком соусе,modifier_dictionary_not_independent_product
+47a22ad0-376e-48af-9476-5e6f2895ca7f,Кисло-сладкий для фергана,0.0,Фергана в сливочном или кисло-сладком соусе,modifier_dictionary_not_independent_product
+f8e9ecdf-5a2e-4dd5-8628-ec4843fe7bbb,* ягодный ,60.0,Чаи обычные,modifier_dictionary_not_independent_product
+fb24a7fa-0086-4689-a4e7-0cd925d86734,* фруктовый ,60.0,Чаи обычные,modifier_dictionary_not_independent_product
+abe82b05-4526-4b76-9123-e39ba057bec2,*чабрец,40.0,Чаи обычные,modifier_dictionary_not_independent_product
+e3b10bd5-1352-4e41-85ab-fa9936232b3f,* жасмин ,60.0,Чаи обычные,modifier_dictionary_not_independent_product
+10984092-1ba2-4642-a4d5-f14f891927dd,*молочный улун,40.0,Чаи обычные,modifier_dictionary_not_independent_product
+bf4dd871-677c-4776-be3c-b472b3d746bc,* имбирь - мята,60.0,Чаи обычные,modifier_dictionary_not_independent_product
+e8a51e28-9c92-4f78-baf4-81a7060c3e41,*манго-маракуйя ,40.0,Чаи обычные,modifier_dictionary_not_independent_product
+131a8a7a-bf0e-44f7-88d4-ac57be63d8dd,* граф орлов ,40.0,Чаи обычные,modifier_dictionary_not_independent_product
+a618a354-23dd-4632-9a78-ba675ab1c0b8,* имбирь ,60.0,Чаи обычные,modifier_dictionary_not_independent_product
+b8356117-b65e-453b-ad12-9db4e0061270,* наглый фрукт ,40.0,Чаи обычные,modifier_dictionary_not_independent_product
+86c629e3-3ce5-4577-a7a8-3de099d55cb2,* зеленый ,0.0,Чаи обычные,modifier_dictionary_not_independent_product
+59658cb5-9b9c-41d1-be72-b7e8cbac3b30,* черный ,0.0,Чаи обычные,modifier_dictionary_not_independent_product
+26c387df-e800-4248-b703-ce2af8e16c45,*ананас,0.0,Сок в ассортименте стакан;Сок в ассортименте графин,modifier_dictionary_not_independent_product
+33a2b86f-c6e1-4997-9832-be9464b90cda,* вишня ,0.0,Сок в ассортименте стакан;Сок в ассортименте графин,modifier_dictionary_not_independent_product
+0c063e2b-821f-48c6-9a0b-6fe327017cca,* яблока ,0.0,Сок в ассортименте стакан;Сок в ассортименте графин,modifier_dictionary_not_independent_product
+265b876c-9665-498a-9f39-47718df361d5,*мультифрукт ,0.0,Сок в ассортименте стакан;Сок в ассортименте графин,modifier_dictionary_not_independent_product
+4a681e7a-560a-47a0-8bde-e4a0b46aedb4,* гранат ,0.0,Сок в ассортименте стакан;Сок в ассортименте графин,modifier_dictionary_not_independent_product

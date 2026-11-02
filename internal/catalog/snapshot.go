@@ -38,6 +38,11 @@ func ReadSeed(r io.Reader) (Seed, error) {
 	if err := validateItems(seed.Items, seed.Categories); err != nil {
 		return seed, err
 	}
+	for _, item := range seed.Items {
+		if strings.TrimSpace(item.SourceName) == "" {
+			return seed, fmt.Errorf("missing reviewed source name for %q", item.ID)
+		}
+	}
 	return seed, nil
 }
 

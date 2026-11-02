@@ -32,8 +32,8 @@ func fixture(t *testing.T, name string) []byte {
 }
 func seed() catalog.Seed {
 	return catalog.Seed{Categories: []catalog.Category{{ID: "grill", Name: "Мангал"}}, Items: []catalog.Item{
-		{ID: "one", IikoID: first, Name: "Редакторское имя", Price: 590, Category: "grill", Available: true, Image: "assets/local.jpg", Description: "Наш текст", Weight: "410 г", Badge: "Хит", IsHalal: true},
-		{ID: "two", IikoID: second, Name: "Скрытое", Price: 390, Category: "grill", Available: false},
+		{ID: "one", IikoID: first, Name: "Редакторское имя", SourceName: "Имя из iiko", Price: 590, Category: "grill", Available: true, Image: "assets/local.jpg", Description: "Наш текст", Weight: "410 г", Badge: "Хит", IsHalal: true},
+		{ID: "two", IikoID: second, Name: "Скрытое", SourceName: "Скрыто редактором", Price: 390, Category: "grill", Available: false},
 	}}
 }
 func setup(t *testing.T, source Source) (*Service, *catalog.Store) {

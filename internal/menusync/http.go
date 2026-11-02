@@ -25,6 +25,13 @@ func MenuHandler(store *catalog.Store) http.Handler {
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": "menu_unavailable"})
 			return
 		}
+		visible := make([]catalog.Item, 0, len(view.Items))
+		for _, item := range view.Items {
+			if !item.Hidden {
+				visible = append(visible, item)
+			}
+		}
+		view.Items = visible
 		_ = json.NewEncoder(w).Encode(view)
 	})
 }

@@ -56,6 +56,8 @@ func TestSafeFileServer_Security(t *testing.T) {
 	internalDir := filepath.Join(tmpDir, "internal")
 	_ = os.Mkdir(internalDir, 0755)
 	_ = os.WriteFile(filepath.Join(internalDir, "code.go"), []byte("package main"), 0644)
+	_ = os.MkdirAll(filepath.Join(tmpDir, "docs", "tasks"), 0755)
+	_ = os.WriteFile(filepath.Join(tmpDir, "docs", "tasks", "menu.csv"), []byte("NEW hidden product"), 0644)
 
 	handler := safeFileServer(tmpDir)
 
@@ -72,6 +74,7 @@ func TestSafeFileServer_Security(t *testing.T) {
 		{"Block .env", "/.env", http.StatusNotFound},
 		{"Block json file", "/iiko_config.json", http.StatusNotFound},
 		{"Block internal directory", "/internal/code.go", http.StatusNotFound},
+		{"Block unpublished menu report", "/docs/tasks/menu.csv", http.StatusNotFound},
 		{"Missing static asset with ext", "/missing.png", http.StatusNotFound},
 		{"SPA fallback without ext", "/about-restaurant", http.StatusOK},
 	}

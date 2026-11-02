@@ -106,7 +106,7 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 			defer mock.Close()
 			web, state := t.TempDir(), t.TempDir()
 			os.Mkdir(filepath.Join(web, "data"), 0700)
-			os.WriteFile(filepath.Join(web, "data", "menu_catalog.json"), []byte(`{"categories":[{"id":"grill","name":"Мангал"}],"items":[{"id":"one","iikoId":"11111111-1111-4111-8111-111111111111","name":"Блюдо","category":"grill","price":590,"available":true}]}`), 0600)
+			os.WriteFile(filepath.Join(web, "data", "menu_catalog.json"), []byte(`{"categories":[{"id":"grill","name":"Мангал"}],"items":[{"id":"one","iikoId":"11111111-1111-4111-8111-111111111111","name":"Блюдо","sourceName":"Mock","category":"grill","price":590,"available":true}]}`), 0600)
 			cfg := &config.Config{APIBaseURL: mock.URL, OrganizationID: "org", TerminalGroupID: "term", ExternalMenuID: "menu"}
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 			tr := &appNotificationTransport{}
