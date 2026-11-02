@@ -145,7 +145,7 @@ nginx -t выполнен до reload; другие vhost не изменяли�
 Сертификат покрывает оба имени и действует до 31 января 2027.
 Certbot timer active; certbot renew --cert-name beini --dry-run прошёл.
 
-Активный runtime: fe7420d949fb6f9bbac64bed7cba229ae1e6ead6;
+Runtime первоначального запуска: fe7420d949fb6f9bbac64bed7cba229ae1e6ead6;
 /opt/beini/current указывает на одноимённый release. Изменение DNS/HTTPS
 не меняет binary и журнал состояния. На момент проверки orders.jsonl пустой.
 Для возврата к 503 сохранён /etc/beini/nginx-http-bootstrap.conf:
@@ -158,3 +158,8 @@ Certbot timer active; certbot renew --cert-name beini --dry-run прошёл.
 только в отдельном тестовом Chrome: публичный домен, действительный сертификат
 и обычные запросы frontend; TLS-проверка не отключалась. Это проверка VPS
 через публичный HTTPS, а не подтверждение обновления всех внешних кэшей.
+
+Позднее 2 ноября меню обновлено до runtime865162230fff2c79597b6cc7ad0a18fd9e97be39:
+251 видимая карточка и 24 hidden NEW, все фото-заглушки. Обычный браузер с
+прежним кэшем проверен после reload. Nginx/DNS/config и журналы не менялись;
+предыдущие релизы сохранены. [Отчёт обновления](tasks/menu-release-2026-11-02.md).
