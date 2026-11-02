@@ -28,6 +28,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request, dir string) {
 		http.NotFound(w, r)
 		return
 	}
+	w.Header().Set("Cache-Control", "no-cache")
 	http.ServeContent(w, r, "index.html", info.ModTime(), f)
 }
 

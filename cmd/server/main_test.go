@@ -91,3 +91,15 @@ func TestSafeFileServer_Security(t *testing.T) {
 		})
 	}
 }
+
+func TestGuestHTMLRequiresRevalidation(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("menu"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	safeFileServer(root).ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if w.Code != http.StatusOK || w.Header().Get("Cache-Control") != "no-cache" {
+		t.Fatalf("guest HTML can mask menu updates: status=%d cache=%q", w.Code, w.Header().Get("Cache-Control"))
+	}
+}
