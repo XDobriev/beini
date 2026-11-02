@@ -7,9 +7,13 @@
 ## Подтверждённое окружение
 
 См. [вводные владельца](confirmed-context-2026-11-01.md): публичная витрина
-на GitHub Pages, Go-сервер только локально. Домен в Timeweb не подключён.
-На имеющемся VPS работает другой проект; размещение BEINI там не согласовано.
-Не изменяйте VPS в рамках настройки harness.
+на GitHub Pages, Go-сервер только локально.
+Read-only проверка 2 ноября уточнила домен: beinirest.ru зарегистрирован
+и припаркован в REG.RU, NS ns1.reg.ru/ns2.reg.ru; apex/www указывают
+на 95.163.244.138. Это адрес парковки, не подтверждённый VPS BEINI.
+На имеющемся VPS Timeweb работает другой проект; размещение BEINI там
+не согласовано. DNS и VPS до согласования конкретного плана не менять.
+Проверки и проект размещения: [публичное развёртывание](tasks/public-deployment-2026-11-02.md).
 
 ## Локальный запуск
 
@@ -23,7 +27,7 @@ go run ./cmd/server
 нужны ENV-параметры интеграции. Примерные значения позволяют посмотреть витрину,
 но не выполнять заказ. .env сервер автоматически не читает.
 
-Параметры: BEINI_STATE_DIR, PORT, STATIC_DIR, IIKO_API_BASE_URL, IIKO_API_KEY, IIKO_APP_ID,
+Параметры: BEINI_STATE_DIR, PORT, HTTP_LISTEN_ADDR, STATIC_DIR, IIKO_API_BASE_URL, IIKO_API_KEY, IIKO_APP_ID,
 IIKO_CLIENT_SECRET, IIKO_ORGANIZATION_ID, IIKO_TERMINAL_GROUP_ID, DELIVERY_CITY,
 TRANSPORT_TIMEOUT_SEC, TEST_ORDER_TOKEN, ALLOWED_ORIGINS, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
 Типы заказов и оплаты задаются в JSON. Источник точной схемы:
@@ -63,6 +67,14 @@ Telegram отправляются в настроенную закрытую г�
 Фактический restart с диском проверяется Go-тестом `TestApplicationMenuOrderRestart`.
 Фиксированный `/api/test-order` в динамической сборке отвечает 503; кнопка /demo
 отключена до отдельного согласования диагностического блюда и цены.
+
+## Нативный Linux VPS
+
+Подготовлены unit systemd, отдельный Nginx-vhost, loopback bind и изолированный
+журнал. Состав релиза, HTTPS/ACME, запуск, проверки и откат:
+[инструкция развёртывания](deployment.md). Результат фактической публикации
+фиксируется в документе задачи; наличие шаблонов не подтверждает запуск.
+HTTP_LISTEN_ADDR переопределяет адрес целиком; без него сохраняется `:<PORT>`.
 
 ## Docker
 

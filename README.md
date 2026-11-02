@@ -57,6 +57,9 @@ Go-тесты используют loopback mock-серверы.
 
 Сервер читает JSON и переменные окружения; .env автоматически не загружается.
 Точный порядок настройки описан в [operations](docs/operations.md).
+Шаблоны systemd/Nginx, упаковка Linux-релиза, HTTPS и откат описаны в
+[инструкции развёртывания](docs/deployment.md); фактический статус публикации —
+в [задаче](docs/tasks/public-deployment-2026-11-02.md).
 Секреты не добавляются в Git. Для Telegram задайте только на сервере
 `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID`; без них события накапливаются без отправки.
 [Создание закрытой группы и бота](docs/telegram-notifications.md).

@@ -104,6 +104,14 @@ func safeFileServer(dir string) http.Handler {
 	})
 }
 
+// httpListenAddress позволяет ограничить HTTP loopback-интерфейсом за reverse proxy.
+func httpListenAddress(port string) string {
+	if address := strings.TrimSpace(os.Getenv("HTTP_LISTEN_ADDR")); address != "" {
+		return address
+	}
+	return ":" + port
+}
+
 func main() {
 	// 1. Инициализация структурированного логгера log/slog
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -134,7 +142,7 @@ func main() {
 	defer closeApp()
 
 	// 8. Конфигурация HTTP сервера с production-таймаутами
-	serverAddr := ":" + cfg.Port
+	serverAddr := httpListenAddress(cfg.Port)
 	server := &http.Server{
 		Addr:         serverAddr,
 		Handler:      rootHandler,
@@ -146,7 +154,7 @@ func main() {
 	// 9. Запуск сервера в отдельной горутине
 	go func() {
 		logger.Info("сервер успешно запущен",
-			"addr", "http://localhost"+serverAddr,
+			"addr", serverAddr,
 			"port", cfg.Port,
 			"staticDir", staticDir,
 		)

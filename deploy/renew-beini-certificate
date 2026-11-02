@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+# Certbot вызывает общий deploy hook и при продлении других сертификатов.
+[ "${RENEWED_LINEAGE:-}" = /etc/letsencrypt/live/beini ] || exit 0
+/usr/sbin/nginx -t
+/usr/bin/systemctl reload nginx

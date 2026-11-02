@@ -1,6 +1,7 @@
 package iiko
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -15,6 +17,41 @@ import (
 	"beini-backend/internal/config"
 	"beini-backend/internal/domain"
 )
+
+func TestUpstreamErrorsDoNotExposeResponseBody(t *testing.T) {
+	for _, status := range []int{http.StatusBadRequest, http.StatusOK} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(status)
+				_, _ = w.Write([]byte(`{"private":"guest-contact-and-api-secret"} broken`))
+			}))
+			defer server.Close()
+			client := NewClient(&config.Config{APIBaseURL: server.URL}, nil)
+			var response AccessTokenResponse
+			err := client.postJSON(context.Background(), "/api/v2/access_token", AccessTokenRequest{}, &response, "")
+			if err == nil {
+				t.Fatal("invalid upstream response must fail")
+			}
+			if strings.Contains(err.Error(), "guest-contact-and-api-secret") {
+				t.Fatal("upstream body leaked into an error")
+			}
+		})
+	}
+}
+
+func TestCreateDoesNotLogGuest(t *testing.T) {
+	client, _ := newTestClient(t, StatusSuccess, nil)
+	var logs bytes.Buffer
+	client.logger = slog.New(slog.NewTextHandler(&logs, nil))
+	order := testOrder(domain.DeliveryPickUp, "")
+	order.CustomerName = "private-guest-marker"
+	if _, err := client.CreateDeliveryOrder(context.Background(), order); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(logs.String(), order.CustomerName) || strings.Contains(logs.String(), order.Phone) {
+		t.Fatal("guest details leaked into application logs")
+	}
+}
 
 // newTestClient поднимает заглушку iiko; byIDStatuses — последовательность статусов для /deliveries/by_id
 func newTestClient(t *testing.T, createStatus string, byIDStatuses []string) (*Client, *CreateDeliveryRequest) {

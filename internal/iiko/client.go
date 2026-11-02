@@ -195,7 +195,6 @@ func (c *Client) submitDeliveryOrder(ctx context.Context, order *domain.Order, i
 
 	c.logger.Info("отправка заказа на кассовый терминал",
 		"terminalGroupId", c.cfg.TerminalGroupID,
-		"customer", order.CustomerName,
 		"totalSum", order.TotalSum(),
 	)
 
@@ -328,12 +327,12 @@ func (c *Client) postJSON(ctx context.Context, endpoint string, reqData any, res
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("iiko API вернул HTTP %d: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("iiko API вернул HTTP %d", resp.StatusCode)
 	}
 
 	if respData != nil {
 		if err := json.Unmarshal(bodyBytes, respData); err != nil {
-			return fmt.Errorf("ошибка десериализации JSON ответа: %w (тело: %s)", err, string(bodyBytes))
+			return errors.New("ошибка десериализации JSON ответа iiko API")
 		}
 	}
 

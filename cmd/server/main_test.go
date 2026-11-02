@@ -1,12 +1,37 @@
 package main
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestHTTPListenAddressBindsLoopback(t *testing.T) {
+	t.Setenv("HTTP_LISTEN_ADDR", "127.0.0.1:0")
+	listener, err := net.Listen("tcp", httpListenAddress("8080"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	if !listener.Addr().(*net.TCPAddr).IP.IsLoopback() {
+		t.Fatal("HTTP listener must remain on loopback")
+	}
+}
+
+func TestHTTPListenAddressKeepsPortDefault(t *testing.T) {
+	t.Setenv("HTTP_LISTEN_ADDR", "")
+	if got := httpListenAddress("9090"); got != ":9090" {
+		t.Fatalf("PORT fallback = %q", got)
+	}
+	t.Setenv("HTTP_LISTEN_ADDR", "invalid address")
+	if listener, err := net.Listen("tcp", httpListenAddress("8080")); err == nil {
+		listener.Close()
+		t.Fatal("invalid explicit address must fail instead of opening public PORT")
+	}
+}
 
 func TestSafeFileServer_Security(t *testing.T) {
 	// Создаем временную директорию с файлами
@@ -63,4 +88,3 @@ func TestSafeFileServer_Security(t *testing.T) {
 		})
 	}
 }
-
