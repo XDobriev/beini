@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,6 +32,28 @@ func TestStateDirectoryOutsideStatic(t *testing.T) {
 	}
 	if _, err := stateDirectory(web, t.TempDir()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestStateLocationDifferentWindowsVolumes(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows volume semantics")
+	}
+	for _, paths := range [][2]string{
+		{`D:\a\beini\beini`, `C:\Users\runneradmin\AppData\Local\Temp\state`},
+		{`\\server\web\site`, `\\server\state\orders`},
+	} {
+		if err := checkStateLocation(paths[0], paths[1]); err != nil {
+			t.Fatalf("separate volume rejected: %v", err)
+		}
+	}
+	for _, target := range []string{`d:\site\private`, `\\?\D:\site\private`, `\\.\D:\site\private`, `\\.\GLOBALROOT\Device\HarddiskVolume1\site\private`} {
+		if err := checkStateLocation(`D:\site`, target); err == nil {
+			t.Fatal("same-volume public directory accepted")
+		}
+	}
+	if err := checkStateLocation(`\\server\web\site`, `\\?\UNC\server\web\site\state`); err == nil {
+		t.Fatal("extended UNC path evaded containment")
 	}
 }
 

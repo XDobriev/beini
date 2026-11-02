@@ -40,12 +40,8 @@ func stateDirectory(staticDir, stateDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rel, err := filepath.Rel(web, state)
-	if err != nil {
+	if err := checkStateLocation(web, state); err != nil {
 		return "", err
-	}
-	if rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))) {
-		return "", errors.New("BEINI_STATE_DIR находится внутри web root")
 	}
 	info, err := os.Stat(state)
 	if err != nil {
@@ -55,6 +51,45 @@ func stateDirectory(staticDir, stateDir string) (string, error) {
 		return "", errors.New("BEINI_STATE_DIR должен быть каталогом")
 	}
 	return state, nil
+}
+
+func checkStateLocation(web, state string) error {
+	// EvalSymlinks can preserve Windows extended path prefixes. Compare the
+	// equivalent ordinary paths so a prefix alone cannot evade containment.
+	ordinary := func(path string) (string, error) {
+		if strings.HasPrefix(path, `\\?\`) || strings.HasPrefix(path, `\\.\`) {
+			path = path[4:]
+			if len(path) >= 4 && strings.EqualFold(path[:4], `UNC\`) {
+				return `\\` + path[4:], nil
+			}
+			if len(path) < 3 || path[1] != ':' || path[2] != '\\' || !((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')) {
+				return "", errors.New("неподдерживаемый Windows device path для каталога состояния")
+			}
+		}
+		return path, nil
+	}
+	var err error
+	web, err = ordinary(web)
+	if err != nil {
+		return err
+	}
+	state, err = ordinary(state)
+	if err != nil {
+		return err
+	}
+	// Rel cannot represent a path on another Windows drive/share. Both paths
+	// already exist and have been resolved before this check.
+	if !strings.EqualFold(filepath.VolumeName(web), filepath.VolumeName(state)) {
+		return nil
+	}
+	rel, err := filepath.Rel(web, state)
+	if err != nil {
+		return err
+	}
+	if rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))) {
+		return errors.New("BEINI_STATE_DIR находится внутри web root")
+	}
+	return nil
 }
 
 func newApplication(cfg *config.Config, logger *slog.Logger, staticDir, stateDir string) (http.Handler, func(), error) {
