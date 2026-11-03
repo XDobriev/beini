@@ -454,6 +454,8 @@
         ${state.orderError ? `<div class="form-error" id="order-error" role="alert">${esc(state.orderError)}</div>` : ''}
         <div class="sheet-total"><span class="lbl">Итого · оплата наличными</span><span class="sum">${fmt(total)} ₽</span></div>
         ${canSubmit() ? `<button type="button" class="btn btn-ink" data-action="place-order"${sending || !orderingReady() || state.priceNotice || lines.some(l => !l.dish.available) ? ' disabled' : ''}>${sending ? 'Отправляем…' : (state.access.mock ? 'Отправить учебный заказ' : 'Оформить заказ')}</button>` : accessNotice(false)}
+        <p class="pickup-note">Или подготовьте заявку в WhatsApp. Откроется готовое сообщение: нажмите «Отправить», затем дождитесь подтверждения ресторана.</p>
+        <button type="button" class="btn btn-line" data-action="order-wa"${sending ? ' disabled' : ''}>Отправить заявку в WhatsApp</button>
 `;
     }
 
@@ -747,11 +749,12 @@
     const lines = cartLines();
     let msg = 'Заказ с сайта «Бейни»\n\n';
     lines.forEach(l => { msg += `${l.dish.name} × ${l.qty} — ${fmt(l.qty * l.dish.price)} ₽\n`; });
-    msg += `\nИтого: ${fmt(cartTotal())} ₽ (наличными)\n`;
+    msg += `\nПредварительный расчёт: ${fmt(cartTotal())} ₽\n`;
     msg += `Способ: ${state.orderType === 'delivery' ? 'доставка' : 'самовывоз'}\n`;
     if (state.orderType === 'delivery' && state.form.address) msg += `Адрес: ${state.form.address}\n`;
     if (state.form.name) msg += `Имя: ${state.form.name}\n`;
     if (state.form.phone) msg += `Телефон: ${state.form.phone}\n`;
+    msg += '\nПожалуйста, подтвердите наличие блюд, итоговую стоимость и возможность доставки. Заявка не считается принятой до подтверждения ресторана.';
     window.open(`https://wa.me/${WA_PHONE}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
   }
 
