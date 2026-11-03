@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"beini-backend/internal/access"
 	"beini-backend/internal/catalog"
 	"beini-backend/internal/config"
 	"beini-backend/internal/handler"
@@ -108,6 +109,10 @@ func newApplication(cfg *config.Config, logger *slog.Logger, staticDir, stateDir
 }
 
 func newApplicationWithTransport(cfg *config.Config, logger *slog.Logger, staticDir, stateDir string, transport notifier.Transport) (http.Handler, func(), error) {
+	gate, err := access.New(access.Config{Mode: cfg.OrderMode, PasswordHash: cfg.TesterPasswordHash, LocalHTTP: cfg.TesterLocalHTTP, Origins: cfg.AllowedOrigins})
+	if err != nil {
+		return nil, nil, err
+	}
 	if strings.TrimSpace(cfg.ExternalMenuID) == "" {
 		return nil, nil, errors.New("задайте externalMenuId или IIKO_EXTERNAL_MENU_ID для меню iiko v3")
 	}
@@ -196,7 +201,10 @@ func newApplicationWithTransport(cfg *config.Config, logger *slog.Logger, static
 	statusLimit := middleware.NewRateLimiter(60, time.Minute)
 	mux.HandleFunc("/api/health", orders.HealthCheck)
 	mux.Handle("/api/menu", menusync.MenuHandler(store))
-	mux.Handle("/api/order", middleware.RateLimit(orderLimit)(http.HandlerFunc(orders.CreateOrder)))
+	mux.HandleFunc("/api/access", gate.Access)
+	mux.HandleFunc("/api/tester/login", gate.Login)
+	mux.HandleFunc("/api/tester/logout", gate.Logout)
+	mux.Handle("/api/order", gate.ProtectOrder(middleware.RateLimit(orderLimit)(http.HandlerFunc(orders.CreateOrder))))
 	mux.Handle("/api/order/status", middleware.RateLimit(statusLimit)(http.HandlerFunc(orders.OrderStatus)))
 	mux.Handle("/api/test-order", middleware.RateLimit(orderLimit)(http.HandlerFunc(orders.SendTestOrder)))
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
@@ -206,6 +214,12 @@ func newApplicationWithTransport(cfg *config.Config, logger *slog.Logger, static
 	})
 	mux.HandleFunc("/demo", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(staticDir, "demo.html"))
+	})
+	mux.HandleFunc("/tester", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+		http.ServeFile(w, r, filepath.Join(staticDir, "tester.html"))
 	})
 	mux.Handle("/", safeFileServer(staticDir))
 	var root http.Handler = mux

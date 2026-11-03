@@ -11,6 +11,7 @@ User=beini
 Group=beini
 WorkingDirectory=/etc/beini
 EnvironmentFile=/etc/beini/service.env
+EnvironmentFile=-/etc/beini/tester.env
 ExecStart=/opt/beini/current/bin/beini-server
 Restart=on-failure
 RestartSec=5

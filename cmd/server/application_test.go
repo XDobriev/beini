@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"beini-backend/internal/access"
 	"beini-backend/internal/config"
 	"beini-backend/internal/iiko"
 )
@@ -61,10 +62,10 @@ func TestStateLocationDifferentWindowsVolumes(t *testing.T) {
 // worker, price consent, routes and reconciliation against a loopback iiko API.
 func TestApplicationMenuOrderRestart(t *testing.T) {
 	for _, scenario := range []struct {
-		name, final string
-		drop        bool
+		name, final    string
+		drop, delivery bool
 	}{
-		{"confirmed", "Success", false}, {"rejected", "Error", false}, {"lost-response", "Success", true},
+		{"confirmed", "Success", false, false}, {"rejected", "Error", false, false}, {"lost-response", "Success", true, false}, {"delivery", "Success", false, true},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			var creates atomic.Int32
@@ -88,6 +89,9 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 					if req.Order.Items[0].Price != 620 {
 						t.Error("untrusted price reached iiko")
 					}
+					if scenario.delivery && req.Order.DeliveryPoint == nil {
+						t.Error("owner delivery lost its address")
+					}
 					if scenario.drop {
 						conn, _, _ := w.(http.Hijacker).Hijack()
 						conn.Close()
@@ -107,7 +111,11 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 			web, state := t.TempDir(), t.TempDir()
 			os.Mkdir(filepath.Join(web, "data"), 0700)
 			os.WriteFile(filepath.Join(web, "data", "menu_catalog.json"), []byte(`{"categories":[{"id":"grill","name":"Мангал"}],"items":[{"id":"one","iikoId":"11111111-1111-4111-8111-111111111111","name":"Блюдо","sourceName":"Mock","category":"grill","price":590,"available":true}]}`), 0600)
-			cfg := &config.Config{APIBaseURL: mock.URL, OrganizationID: "org", TerminalGroupID: "term", ExternalMenuID: "menu"}
+			hash, err := access.HashPassword("offline-password-only")
+			if err != nil {
+				t.Fatal(err)
+			}
+			cfg := &config.Config{APIBaseURL: mock.URL, OrganizationID: "org", TerminalGroupID: "term", ExternalMenuID: "menu", OrderMode: "tester", TesterPasswordHash: hash}
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 			tr := &appNotificationTransport{}
 			tr.fail.Store(true)
@@ -117,13 +125,9 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer func() { closeApp() }()
+			browser := ownerClient(t, app)
 			call := func(method, path, body string) *httptest.ResponseRecorder {
-				w := httptest.NewRecorder()
-				r := httptest.NewRequest(method, path, strings.NewReader(body))
-				r.Header.Set("Idempotency-Key", "integration-key")
-				r.Header.Set("Content-Type", "application/json")
-				app.ServeHTTP(w, r)
-				return w
+				return browser.call(method, path, body, "integration-key")
 			}
 			deadline := time.Now().Add(3 * time.Second)
 			for call("GET", "/api/menu", "").Code != 200 {
@@ -133,6 +137,9 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 				time.Sleep(10 * time.Millisecond)
 			}
 			body := `{"phone":"89990000000","deliveryType":"pickup","items":[{"productId":"one","amount":2}],"expectedPrices":[590]}`
+			if scenario.delivery {
+				body = strings.Replace(body, `"deliveryType":"pickup"`, `"deliveryType":"delivery","address":"Ленина, 1"`, 1)
+			}
 			w := call("POST", "/api/order", body)
 			if w.Code != 409 || creates.Load() != 0 {
 				t.Fatalf("price consent: %d %s creates=%d", w.Code, w.Body, creates.Load())
@@ -163,6 +170,7 @@ func TestApplicationMenuOrderRestart(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			browser = ownerClient(t, app)
 			want, code := `"status":"confirmed"`, 200
 			if scenario.final == "Error" {
 				want, code = `"status":"rejected"`, 422

@@ -49,6 +49,10 @@
   }));
 
   const state = {
+    access: { mode: 'closed', authenticated: false, canOrder: false, mock: false },
+    accessExpiresAt: 0,
+    accessError: '',
+    accessChecking: false,
     menuReady: false,
     menuExpiresAt: 0,
     menuMessage: 'Проверяем актуальность меню…',
@@ -266,7 +270,8 @@
           </div>`).join('')}
         <div class="cart-meta"><span>${typeName}</span><span>${typeNote}</span></div>
         <div class="total-row"><span>Итого</span><span class="total-sum">${fmt(total)} ₽</span></div>
-        <button type="button" class="btn btn-ink" style="height:50px" data-action="open-sheet">Оформить заказ</button>`}`;
+        ${!canSubmit() ? '<p class="pickup-note">Онлайн-отправка временно закрыта. Заказать можно по телефону.</p>' : ''}
+        <button type="button" class="btn btn-ink" style="height:50px" data-action="open-sheet">${canSubmit() ? 'Оформить заказ' : 'Посмотреть корзину'}</button>`}`;
 
     // Плавающая полоса на мобильном
     const bar = $('cart-bar');
@@ -281,7 +286,7 @@
   }
 
   /* ---------- Шторка оформления ---------- */
-  const BACKGROUND = ['header', 'main', 'footer'];
+  const BACKGROUND = ['#operation-banner', 'header', 'main', 'footer'];
   let returnFocus = null;
 
   function setBackgroundInert(on) {
@@ -356,12 +361,12 @@
     let body;
 
     if (state.orderStatus === 'success') {
-      body = `<p class="sheet-msg">Заказ на ${fmt(state.orderedTotal)} ₽ принят. Мы позвоним, чтобы подтвердить.</p>
+      body = `<p class="sheet-msg" role="status">${mockOrder() ? 'MOCK: искусственная касса подтвердила учебный заказ' : 'Касса подтвердила создание заказа'} на ${fmt(state.orderedTotal)} ₽.${mockOrder() ? ' В ресторан ничего не отправлено.' : ''}</p>
         <button type="button" class="btn btn-line" data-action="close-sheet">Вернуться в меню</button>`;
     } else if (state.orderStatus === 'rejected') {
-      body = '<p class="sheet-msg" role="alert">Касса отклонила заказ. Заказ не подтверждён. Уточните причину в ресторане.</p><a class="btn btn-line" href="tel:+79204827777">Позвонить в ресторан</a><button type="button" class="btn btn-line" data-action="new-order">Вернуться к оформлению</button>';
+      body = `<p class="sheet-msg" role="alert">${mockOrder() ? 'MOCK: искусственная касса отклонила учебный заказ. В ресторан ничего не отправлено.' : 'Касса отклонила заказ. Заказ не подтверждён. Уточните причину в ресторане.'}</p><a class="btn btn-line" href="tel:+79204827777">Позвонить в ресторан</a><button type="button" class="btn btn-line" data-action="new-order">Вернуться к оформлению</button>`;
     } else if (state.orderStatus === 'pending' || state.orderStatus === 'unknown') {
-      body = `<p class="sheet-msg" role="status">${state.orderStatus === 'pending' ? 'Заказ отправлен, но касса ещё не подтвердила его приём.' : 'Не удалось узнать результат отправки. Заказ мог быть передан ресторану.'} Статус обновляется автоматически. Не оформляйте второй заказ.</p>${state.canRetry ? '<button type="button" class="btn btn-line" data-action="retry-order">Повторить запрос с прежним ключом</button>' : ''}<a class="btn btn-line" href="tel:+79204827777">Позвонить в ресторан</a><button type="button" class="btn btn-line" data-action="close-sheet">Вернуться в меню</button>`;
+      body = `<p class="sheet-msg" role="status">${mockOrder() ? 'MOCK: учебная попытка, ресторан её не получает. Ожидаем результат искусственной кассы.' : (state.orderStatus === 'pending' ? 'Заказ отправлен, но касса ещё не подтвердила его приём.' : 'Не удалось узнать результат отправки. Заказ мог быть передан ресторану.')} Статус обновляется автоматически. Не оформляйте второй заказ.</p>${!canSubmit() ? accessNotice(true) : ''}${state.canRetry && canSubmit() ? '<button type="button" class="btn btn-line" data-action="retry-order">Повторить запрос с прежним ключом</button>' : ''}<a class="btn btn-line" href="tel:+79204827777">Позвонить в ресторан</a><button type="button" class="btn btn-line" data-action="close-sheet">Вернуться в меню</button>`;
     } else if (!lines.length) {
       body = '<div class="sheet-empty">Пока пусто. Добавьте блюда из меню — кнопка «+» рядом с ценой.</div>';
     } else {
@@ -377,7 +382,7 @@
           <button type="button" data-action="type" data-type="delivery" class="${state.orderType === 'delivery' ? 'on' : ''}">Доставка</button>
           <button type="button" data-action="type" data-type="pickup" class="${state.orderType === 'pickup' ? 'on' : ''}">Самовывоз</button>
         </div>
-        <div class="fields">
+        ${canSubmit() ? `<div class="fields">
           <label class="sr-only" for="f-name">Ваше имя</label>
           <input class="input" id="f-name" placeholder="Ваше имя" autocomplete="name" value="${esc(f.name)}">
           <label class="sr-only" for="f-phone">Телефон</label>
@@ -386,13 +391,14 @@
             ? `<label class="sr-only" for="f-address">Адрес в Назрани: улица, дом, квартира</label>
                <input class="input${state.badField === 'f-address' ? ' bad' : ''}" id="f-address" placeholder="Адрес в Назрани: улица, дом, квартира" autocomplete="street-address" value="${esc(f.address)}"${fieldErr('f-address')}>`
             : '<div class="pickup-note">Заберёте по адресу: Осканова, 21</div>'}
-        </div>
+        </div>` : ''}
+        ${state.access.authenticated && canSubmit() ? `<p class="tester-warning" role="status">${state.access.mock ? 'MOCK: учебный заказ, без отправки в ресторан.' : 'Режим тестировщика. Заказ будет реально отправлен в ресторан'}</p>` : ''}
         <p class="pickup-note" role="status">${esc(state.menuMessage)}</p>
         ${state.priceNotice ? '<p class="form-error" role="alert">Цены в корзине изменились. Проверьте новые цены и сумму.</p><button type="button" class="btn btn-line" data-action="accept-prices">Подтвердить новые цены</button>' : ''}
         ${lines.some(l => !l.dish.available) ? '<p class="form-error">В корзине есть недоступные блюда. Удалите их для оформления.</p>' : ''}
         ${state.orderError ? `<div class="form-error" id="order-error" role="alert">${esc(state.orderError)}</div>` : ''}
         <div class="sheet-total"><span class="lbl">Итого · оплата наличными</span><span class="sum">${fmt(total)} ₽</span></div>
-        <button type="button" class="btn btn-ink" data-action="place-order"${sending || !orderingReady() || state.priceNotice || lines.some(l => !l.dish.available) ? ' disabled' : ''}>${sending ? 'Отправляем…' : 'Оформить заказ'}</button>
+        ${canSubmit() ? `<button type="button" class="btn btn-ink" data-action="place-order"${sending || !orderingReady() || state.priceNotice || lines.some(l => !l.dish.available) ? ' disabled' : ''}>${sending ? 'Отправляем…' : (state.access.mock ? 'Отправить учебный заказ' : 'Оформить заказ')}</button>` : accessNotice(false)}
 `;
     }
 
@@ -409,6 +415,55 @@
   }
 
   /* ---------- Отправка заказа ---------- */
+  function mockOrder() { return state.access.mock || state.attempt && state.attempt.mock; }
+  function canSubmit() {
+    return state.access.canOrder === true && Date.now() < state.accessExpiresAt;
+  }
+  function accessNotice(retry) {
+    return `<p class="pickup-note" role="status">${esc(state.accessError || 'Онлайн-отправка временно закрыта. Заказать и узнать актуальные цены можно по телефону.')}${retry ? ' Ключ и состав попытки сохранены. После входа проверьте статус и при необходимости повторите прежний запрос.' : ''}</p>${state.access.loginAvailable !== false && state.access.mode !== 'closed' ? '<a class="btn btn-line" href="/tester">Войти как тестировщик</a>' : ''}${!retry ? '<a class="btn btn-ink" href="tel:+79204827777">Позвонить в ресторан</a>' : ''}`;
+  }
+  function renderAccess() {
+    const a = state.access;
+    const banner = $('operation-banner');
+    if (banner) banner.hidden = a.mode === 'public' && !a.authenticated && !a.mock && !state.accessError;
+    const message = $('operation-message');
+    if (message) message.textContent = a.mock
+      ? 'MOCK: учебный стенд. Искусственные заказы не отправляются в ресторан.'
+      : (a.authenticated
+        ? (a.mode === 'closed' ? 'Вы вошли как тестировщик. Отправка заказов закрыта сервером для всех.' : 'Режим тестировщика. Заказ будет реально отправлен в ресторан')
+        : 'Сайт работает в тестовом режиме. Меню ещё уточняется. Заказать и узнать актуальные цены можно по телефону.');
+    const logout = $('tester-logout');
+    if (logout) logout.hidden = !a.authenticated;
+    const cta = $('menu-cta');
+    if (cta) cta.textContent = canSubmit() ? 'Заказать доставку' : 'Посмотреть меню';
+  }
+  let accessTimer;
+  async function refreshAccess() {
+    clearTimeout(accessTimer);
+    readForm();
+    try {
+      const data = await window.BEINIAccess.read();
+      state.access = data;
+      state.accessExpiresAt = Math.min(Date.now() + 45000, data.authenticated ? Date.parse(data.sessionExpiresAt) : Infinity);
+      state.accessError = '';
+    } catch (e) {
+      state.access.canOrder = false;
+      state.accessExpiresAt = 0;
+      state.accessError = 'Не удалось проверить доступ. Отправка закрыта. Обновите страницу или позвоните в ресторан.';
+    }
+    // A slow access request must not overwrite text entered while it was in flight.
+    readForm(); renderAccess(); renderCart();
+    accessTimer = setTimeout(refreshAccess, 30000);
+    return canSubmit();
+  }
+  async function logoutTester() {
+    try {
+      const response = await window.BEINIAccess.post('/api/tester/logout', '{}');
+      if (!response.ok) throw new Error('logout');
+      window.BEINIAccess.broadcast();
+      await refreshAccess();
+    } catch (e) { toast('Выход не подтверждён. Обновите страницу и повторите.'); }
+  }
   function readForm() {
     const n = $('f-name'), p = $('f-phone'), a = $('f-address');
     if (n) state.form.name = n.value.trim();
@@ -472,16 +527,17 @@
     if (state.attempt && ['sending', 'pending', 'unknown'].includes(state.attempt.status)) statusTimer = setTimeout(pollStatus, delay);
   }
   function applyStatus(data) {
+    const mock = data.mock === true || state.attempt.mock === true;
     if (data.status === 'confirmed' && data.creationStatus === 'Success' && Number.isFinite(data.totalSum)) {
       state.cart = {};
       saveCart();
       state.orderedTotal = data.totalSum;
       state.orderStatus = 'success';
       state.priceNotice = false;
-      state.attempt = { key: state.attempt.key, status: 'confirmed', totalSum: data.totalSum };
+      state.attempt = { key: state.attempt.key, status: 'confirmed', totalSum: data.totalSum, mock };
     } else if (data.status === 'rejected') {
       state.orderStatus = 'rejected';
-      state.attempt = { key: state.attempt.key, status: 'rejected' };
+      state.attempt = { key: state.attempt.key, status: 'rejected', mock };
     } else if (data.status === 'pending') {
       state.orderStatus = data.outcomeUnknown ? 'unknown' : 'pending';
       state.attempt.status = state.orderStatus;
@@ -519,24 +575,37 @@
     renderCart();
     scheduleStatus();
   }
+  let sendingAttempt = false;
   async function sendAttempt() {
+    if (sendingAttempt) return;
+    if (!state.attempt || !state.attempt.body || state.orderStatus === 'sending') return;
+    sendingAttempt = true;
+    try { await sendSavedAttempt(); } finally { sendingAttempt = false; }
+  }
+  async function sendSavedAttempt() {
+    const attempt = state.attempt;
+    if (!await refreshAccess()) {
+      if (state.attempt !== attempt) return;
+      state.orderStatus = 'unknown'; state.attempt.status = 'unknown'; state.canRetry = true;
+      saveAttempt(); renderCart(); scheduleStatus(); return;
+    }
+    if (state.attempt !== attempt || !attempt.body) return;
     attemptGeneration++; // Поздний polling не может изменить результат этого POST.
     clearTimeout(statusTimer);
     state.orderStatus = 'sending';
     state.attempt.status = 'sending';
     if (!saveAttempt()) {
-      state.orderStatus = 'error';
+      state.orderStatus = 'unknown';
+      state.attempt.status = 'unknown';
+      state.canRetry = true;
       state.orderError = 'Не удалось сохранить ключ заказа. Разрешите локальное хранение данных и повторите.';
-      state.attempt = null;
       renderCart();
+      scheduleStatus();
       return;
     }
     renderCart();
     try {
-      const res = await fetch('/api/order', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': state.attempt.key },
-        body: state.attempt.body, signal: AbortSignal.timeout(40000)
-      });
+      const res = await window.BEINIAccess.post('/api/order', state.attempt.body, { 'Idempotency-Key': state.attempt.key });
       const data = await res.json();
       if (res.status === 409 && data.code === 'price_changed' && Array.isArray(data.items)) {
         data.items.forEach(i => {
@@ -548,6 +617,9 @@
         saveAttempt();
       } else if (applyStatus(data)) {
         state.canRetry = false;
+      } else if (res.status === 403 || res.status === 401 || res.status === 503 && data.code === 'access_unavailable') {
+        state.orderStatus = 'unknown'; state.attempt.status = 'unknown'; state.canRetry = true;
+        saveAttempt(); await refreshAccess();
       } else if (res.status === 400 || res.status === 413 || res.status === 415) {
         state.orderStatus = 'error';
         state.orderError = data.error || 'Проверьте данные заказа.';
@@ -565,8 +637,28 @@
     scheduleStatus();
   }
   async function placeOrder() {
+    if (state.accessChecking) return;
+    state.accessChecking = true;
+    try {
+      if (!navigator.locks) {
+        state.orderError = 'Этот браузер не поддерживает безопасное оформление. Обновите его или позвоните в ресторан.';
+        renderCart(); return;
+      }
+      await navigator.locks.request('beini-checkout', { ifAvailable: true }, async lock => {
+        if (lock) return placeOrderLocked();
+        toast('Оформление уже открыто в другой вкладке. Дождитесь результата.');
+      });
+    } finally { state.accessChecking = false; }
+  }
+  async function placeOrderLocked() {
     if (['sending', 'pending', 'unknown', 'rejected'].includes(state.orderStatus)) return;
     if (!orderingReady() || state.priceNotice || cartLines().some(l => !l.dish.available)) return;
+    const allowed = await refreshAccess();
+    if (!allowed) return;
+    const saved = loadAttempt();
+    if (saved && ['sending', 'pending', 'unknown'].includes(saved.status)) {
+      state.attempt = saved; restoreAttempt(); renderCart(); scheduleStatus(0); return;
+    }
     readForm();
     const problem = validateOrder();
     if (problem) {
@@ -585,7 +677,13 @@
       address: state.orderType === 'delivery' ? state.form.address : '', comment: 'Заказ с сайта',
       items: lines.map(l => ({ productId: l.dish.id, amount: l.qty })), expectedPrices: lines.map(l => l.dish.price)
     };
-    state.attempt = { body: JSON.stringify(payload), key: crypto.randomUUID(), status: 'sending' };
+    state.attempt = { body: JSON.stringify(payload), key: crypto.randomUUID(), status: 'unknown', mock: state.access.mock === true };
+    if (!saveAttempt()) {
+      state.attempt = null;
+      state.orderError = 'Не удалось сохранить ключ заказа. Разрешите локальное хранение данных и повторите.';
+      renderCart(); return;
+    }
+    state.orderStatus = 'idle';
     await sendAttempt();
   }
 
@@ -710,6 +808,7 @@
       case 'open-sheet': openSheet(); break;
       case 'close-sheet': closeSheet(); break;
       case 'place-order': placeOrder(); break;
+      case 'tester-logout': logoutTester(); break;
       case 'accept-prices': acceptPrices(); break;
       case 'retry-order': if (state.orderStatus === 'unknown' && state.attempt && state.attempt.body) sendAttempt(); break;
       case 'new-order': state.attempt = null; saveAttempt(); state.orderStatus = 'idle'; renderCart(); break;
@@ -724,8 +823,11 @@
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.sheetOpen) closeSheet(); });
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('focus', refreshAccess);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAccess(); });
   // Корзина обновилась в другой вкладке (например, вернулись из Instagram)
   window.addEventListener('storage', e => {
+    if (e.key === 'beini_access_changed') { refreshAccess(); return; }
     if (e.key === ORDER_KEY && state.orderStatus !== 'sending') {
       state.attempt = loadAttempt();
       if (state.attempt) { restoreAttempt(); renderCart(); scheduleStatus(0); }
@@ -752,6 +854,7 @@
   renderCart();
   renderBooking();
   refreshMenu();
+  refreshAccess();
   scheduleStatus(0);
   window.BEINI = { toast };
 })();

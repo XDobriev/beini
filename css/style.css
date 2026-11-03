@@ -60,6 +60,19 @@ h1, h2, h3, p { margin: 0; }
 .btn-accent { background: var(--accent); color: var(--bg); }
 .btn[disabled] { opacity: .6; cursor: wait; }
 
+/* Режим эксплуатации: в потоке документа, над sticky-шапкой. */
+.operation-banner { background: var(--bg-alt); border-bottom: 1px solid var(--line-2); }
+.operation-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding-top: 10px; padding-bottom: 10px; font-size: 13px; }
+.operation-in p { flex: 1 1 280px; max-width: 950px; }
+.operation-call { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
+.tester-warning { color: var(--accent); font-weight: 500; margin: 12px 0; }
+.tester-link { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; }
+.tester-page { width: 100%; max-width: 480px; margin: 0 auto; padding: 32px 20px; display: grid; gap: 20px; overflow-wrap: anywhere; }
+.tester-brand { width: fit-content; min-height: 44px; }
+.tester-page form, #tester-session { display: grid; gap: 12px; }
+.tester-page .input { width: 100%; min-width: 0; font-size: 16px; }
+.tester-page .h2 { font-size: 38px; }
+
 /* Шапка */
 .header {
   position: sticky; top: 0; z-index: 40;

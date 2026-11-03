@@ -35,7 +35,7 @@ def main():
             cwd=ROOT, env=env, check=True,
         )
         tracked = subprocess.check_output(
-            ["git", "ls-files", "-z", "--", "index.html", "demo.html",
+            ["git", "ls-files", "-z", "--", "index.html", "demo.html", "tester.html",
              "data/menu_catalog.json", "assets", "css", "js"], cwd=ROOT
         ).decode("utf-8").split("\0")
         for name in filter(None, tracked):

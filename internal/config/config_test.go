@@ -8,6 +8,34 @@ import (
 	"testing"
 )
 
+func TestAccessOnlyServerEnvironment(t *testing.T) {
+	t.Setenv("BEINI_ORDER_MODE", "tester")
+	t.Setenv("BEINI_TESTER_PASSWORD_HASH", "server-only-verifier")
+	t.Setenv("BEINI_TESTER_LOCAL_HTTP", "1")
+	path := filepath.Join(t.TempDir(), "config.json")
+	os.WriteFile(path, []byte(`{"apiKey":"fake","OrderMode":"public","TesterPasswordHash":"file-value"}`), 0600)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.OrderMode != "tester" || cfg.TesterPasswordHash != "server-only-verifier" || cfg.TesterLocalHTTP != "1" {
+		t.Fatal("access ENV missing")
+	}
+	encoded, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "verifier") || strings.Contains(string(encoded), "TesterPasswordHash") {
+		t.Fatal("access verifier serialized")
+	}
+	t.Setenv("BEINI_ORDER_MODE", "")
+	t.Setenv("BEINI_TESTER_PASSWORD_HASH", "")
+	cfg, err = Load(path)
+	if err != nil || cfg.OrderMode != "" || cfg.TesterPasswordHash != "" {
+		t.Fatal("JSON unexpectedly configured access")
+	}
+}
+
 func TestConfigLoad_DefaultValues(t *testing.T) {
 	// Создаем временный файл конфигурации без опциональных полей
 	tmpDir := t.TempDir()

@@ -64,9 +64,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261101-integration">
+  <link rel="stylesheet" href="css/style.css?v=20261102-access">
 </head>
 <body>
+
+  <aside class="operation-banner" id="operation-banner" aria-label="Режим работы сайта">
+    <div class="container operation-in">
+      <p id="operation-message" role="status">Сайт работает в тестовом режиме. Меню ещё уточняется. Заказать и узнать актуальные цены можно по телефону.</p>
+      <a class="operation-call" href="tel:+79204827777">Позвонить</a>
+      <button type="button" class="operation-call" data-action="tester-logout" id="tester-logout" hidden>Выйти</button>
+    </div>
+  </aside>
 
   <header class="header">
     <div class="container header-in">
@@ -90,7 +98,7 @@
         <h1>Ингушская и&nbsp;авторская кухня</h1>
         <p class="lead">Мясо на берёзовых углях, ч1апильг и дулх‑хьалтам, закрытые кабинки до&nbsp;10 гостей и&nbsp;детская комната. Доставка по Назрани около 45&nbsp;минут.</p>
         <div class="cta">
-          <a href="#menu" class="btn btn-ink">Заказать доставку</a>
+          <a href="#menu" class="btn btn-ink" id="menu-cta">Посмотреть меню</a>
           <a href="#booking" class="btn btn-line">Забронировать кабинку</a>
         </div>
         <div class="facts">
@@ -225,6 +233,7 @@
         <span>Ресторан интернациональной и авторской кухни</span>
       </div>
       <span>© 2026 «Бейни» · 100% халяль · Назрань, Осканова, 21</span>
+      <a href="/tester" class="tester-link">Вход владельца</a>
     </div>
   </footer>
 
@@ -233,6 +242,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script src="js/menu-data.js?v=20261102-menu275"></script>
-  <script src="js/app.js?v=20261102-menu275"></script>
+  <script src="js/access.js?v=20261102-access"></script>
+  <script src="js/app.js?v=20261102-access"></script>
 </body>
 </html>

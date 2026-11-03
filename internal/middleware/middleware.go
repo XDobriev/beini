@@ -60,8 +60,8 @@ func Recoverer(logger *slog.Logger) func(http.Handler) http.Handler {
 
 // DefaultAllowedOrigins — список production-доменов ресторана BEINI по умолчанию
 var DefaultAllowedOrigins = []string{
-	"https://beini.ru",
-	"https://www.beini.ru",
+	"https://beinirest.ru",
+	"https://www.beinirest.ru",
 }
 
 // IsOriginAllowed проверяет, входит ли переданный Origin в список разрешенных

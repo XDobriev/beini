@@ -163,3 +163,49 @@ Runtime первоначального запуска: fe7420d949fb6f9bbac64bed7
 251 видимая карточка и 24 hidden NEW, все фото-заглушки. Обычный браузер с
 прежним кэшем проверен после reload. Nginx/DNS/config и журналы не менялись;
 предыдущие релизы сохранены. [Отчёт обновления](tasks/menu-release-2026-11-02.md).
+
+## Следующее развёртывание: тестовая эксплуатация
+
+Этот раздел — инструкция для отдельного поручения, не запись выполненных действий.
+Ветка `codex/test-operation` основана на origin/main38aad78 и сохраняет seed275,
+public251/hidden24. Её текущий локальный результат: [test-operation](tasks/test-operation.md).
+
+1. После ревью и разрешения на публикацию объединить изменения с актуальным main,
+   сохранив последующие изменения меню. Повторить `python scripts/check.py`.
+   Из чистого commit собрать `python scripts/package-release.py --output RELEASE.tar.gz`.
+   Manifest обязан включать `public/tester.html`, `public/js/access.js`,
+   `public/js/tester.js`, обновлённые app.js/style.css и прежний seed.
+2. Сохранить закрытый manifest действующего `/opt/beini/current` и параметры
+   конфигурации. Сохранить действующий BEINI_STATE_DIR целиком; orders/notifications
+   не заменять, не очищать и не откатывать. Не запускать второй writer.
+3. Локально создать уникальный пароль владельца через
+   `python scripts/tester-password.py --env --output PRIVATE_ENV_FRAGMENT`.
+   Защищённо установить fragment в `/etc/beini/tester.env` root:beini0640;
+   пароль и хеш не печатать. Существующие iiko config и Telegram не менять.
+   В `/etc/beini/service.env` установить `BEINI_ORDER_MODE=tester`,
+   `BEINI_TESTER_LOCAL_HTTP=0`, сохранить точные HTTPS origins apex/www.
+   Для полного запрета до входа владельца можно сначала выбрать closed.
+4. Установить обновлённый unit `deploy/beini.service`: он дополнительно читает
+   опциональный `/etc/beini/tester.env`. Выполнить `systemd-analyze verify`
+   и `systemctl daemon-reload`. Распаковать релиз в новый каталог, сверить
+   manifest/SHA256 и права; выполнить обязательный preflight от пользователя beini,
+   описанный выше. Публичные статика/каталоги0644/0755, binary0755.
+5. Остановить **только beini**, атомарно переключить `/opt/beini/current` и
+   запустить beini с прежним состоянием по регламенту выше. Nginx/DNS/avtorstudio
+   не менять. Проверить health, loopback bind, fresh menu/stop, права/сохранность
+   журналов и отсутствие секретов в логах. При restart сессии отзываются, заказы
+   остаются в журнале и worker сверяет pending.
+6. Через оба публичных HTTPS имени проверить меню, плашку, гостевую корзину и
+   `/api/access`: mode=tester, authenticated=false, canOrder=false, no-store.
+   Проверить приватные файлы404, затем войти на выбранном одном имени через
+   `/tester`: authenticated/canOrder=true, предупреждение реальной отправки,
+   выход возвращает canOrder=false. Эти проверки не требуют создания заказа.
+7. Обычный checkout с iiko — только отдельная согласованная приёмка с сотрудником:
+   заказ → карточка/состав/сумма/сигнал/печать → отмена сотрудником. После неё
+   `public` включать только по решению владельца и с тем же журналом.
+
+Важно для отката: runtime8651622 ещё **не содержит** нового ограничения доступа.
+Его возврат может снова открыть гостевой POST, даже если в ENV написано closed.
+Для аварийного закрытия остановить beini и использовать существующий отдельный
+BEINI bootstrap503 по регламенту с nginx -t; конфиги других проектов не менять.
+Не считать прежний runtime безопасным откатом режима без проверки его поведения.

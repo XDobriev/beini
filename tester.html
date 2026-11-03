@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#FAF8F3">
+  <title>Вход владельца — Бейни</title>
+  <link rel="icon" type="image/png" href="/assets/images/brand/logo-mark.png">
+  <link rel="stylesheet" href="/css/style.css?v=20261102-access">
+</head>
+<body>
+  <main class="tester-page">
+    <a href="/" class="tester-brand"><img src="/assets/images/brand/logo.png" alt="Бейни" width="122" height="36"></a>
+    <h1 class="h2">Вход владельца</h1>
+    <p id="tester-note" role="status">Проверяем защищённый доступ…</p>
+    <form id="tester-form" hidden>
+      <label for="tester-password">Пароль</label>
+      <input class="input" id="tester-password" name="password" type="password" autocomplete="current-password" required maxlength="1024" aria-describedby="tester-error">
+      <button class="btn btn-ink" type="submit" id="tester-submit">Войти</button>
+    </form>
+    <p class="form-error" id="tester-error" role="alert"></p>
+    <div id="tester-session" hidden>
+      <a class="btn btn-ink" href="/#menu">Перейти к меню</a>
+      <button class="btn btn-line" id="tester-logout" type="button">Выйти</button>
+    </div>
+    <a class="btn btn-line" href="/">Вернуться на сайт</a>
+    <noscript>Для входа включите JavaScript. Меню и телефон доступны на главной.</noscript>
+  </main>
+  <script src="/js/access.js?v=20261102-access"></script>
+  <script src="/js/tester.js?v=20261102-access"></script>
+</body>
+</html>

@@ -21,6 +21,9 @@ type PaymentTypes struct {
 
 // Config содержит все параметры подключения к iikoCloud и конфигурацию HTTP-сервера
 type Config struct {
+	OrderMode          string `json:"-"`
+	TesterPasswordHash string `json:"-"`
+	TesterLocalHTTP    string `json:"-"`
 	// Только окружение сервера; не сериализуются и не загружаются из JSON.
 	TelegramBotToken string       `json:"-"`
 	TelegramChatID   string       `json:"-"`
@@ -83,6 +86,9 @@ func Load(path string) (*Config, error) {
 
 // applyEnv переопределяет параметры конфигурации из переменных окружения
 func applyEnv(cfg *Config) {
+	cfg.OrderMode = strings.TrimSpace(os.Getenv("BEINI_ORDER_MODE"))
+	cfg.TesterPasswordHash = strings.TrimSpace(os.Getenv("BEINI_TESTER_PASSWORD_HASH"))
+	cfg.TesterLocalHTTP = strings.TrimSpace(os.Getenv("BEINI_TESTER_LOCAL_HTTP"))
 	cfg.TelegramBotToken = strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN"))
 	cfg.TelegramChatID = strings.TrimSpace(os.Getenv("TELEGRAM_CHAT_ID"))
 	if envPort := os.Getenv("PORT"); envPort != "" {

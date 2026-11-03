@@ -1,5 +1,52 @@
 # Проверки
 
+## Тестовая эксплуатация, 2–3 ноября 2026
+
+Общая `python scripts/check.py` прошла до изменений на origin/main38aad78 и
+после подключения авторизации. Нужен разрешённый loopback; первый ограниченный
+sandbox-запуск не мог соединяться с httptest, повтор прошёл без изменения логики.
+Новые проверки выполняют только mock transport, без iiko config и реальных заказов.
+
+- `internal/access`: PBKDF2/verifier, безопасный default, invalid config,
+  closed/tester/public, неверный пароль, глобальные5 попыток/мин,2 KDF slots,
+  HttpOnly/Secure/Strict cookie, forged/expired/revoked/logout/restart,
+  CSRF/Origin/JSON, no-store, server-only secrets и proxy TLS/локальный HTTP.
+- `cmd/server/access_test.go`: guest POST с валидным составом не вызывает create,
+  owner проходит обычную цену/состав, статус прежней попытки доступен после смены
+  режима/restart, public replay не дублирует create. Отдельно owner не обходит
+  старое меню, старые стопы и остановленную позицию: upstream calls=0.
+- `TestApplicationMenuOrderRestart` теперь входит как owner и проходит pickup/
+  delivery, price conflict, pending→confirmed/rejected, lost response/replay,
+  восстановление journal/уведомлений после restart с повторным входом.
+- `scripts/check-access.cjs`: guest UI не создаёт attempt/POST, звонок вместо
+  финальной кнопки, expiry сохраняет key/body, retry использует их без изменений,
+  одновременно отправляющие вкладки не создают две попытки, slow access не
+  затирает введённый телефон. Существующие menu/checkout regression сохранены.
+  `check-access-client.cjs` отдельно выполняет настоящий access.js и проверяет
+  коалесцирование GET, свежий CSRF, credentials/no-store и отсутствие гостевого POST.
+- `scripts/test_mock_ui.py`: настоящий loopback fixture, auth/CSRF/logout,
+  режимы/expiry, hidden NEW/private files, confirmed/pending/rejected/drop,
+  exact retry и отсутствие увеличения creates. Это тест fixture; не подмена
+  настоящих server integration-тестов.
+
+Браузерная приёмка IAB на loopback8767, desktop1440×1000/mobile390×844:
+плашка и звонок гостя, вход с неверным/верным учебным паролем и Enter, поиск Рибая,
+корзина, доставка/адрес и самовывоз/адрес ресторана, синтетическая отправка,
+pending после refresh, истечение сессии при pending, повторный вход,
+подтверждение искусственной кассой. Desktop дополнительно: потеря ответа до
+записи, выход/вход в соседней вкладке, явный повтор прежней попытки и отказ.
+Счётчик:1 создание для первого заказа,2 после одного нового delivery и его
+повтора; logout/refresh/повторный вход его не увеличили. Статусы MOCK явно
+сообщают, что ресторан ничего не получил. Escape закрывает шторку и возвращает
+фокус в header-cart. DOM scrollWidth равен ширине viewport на390 и1440;
+мобильная шторка имеет внутреннюю прокрутку, финальное действие доступно.
+Это проверка мобильного viewport, не физической экранной клавиатуры телефона.
+
+Независимое read-only ревью выявило гонку новых key между вкладками и потерю
+ввода при slow access; исправлены Web Lock/немедленным сохранением и чтением
+актуальной формы перед render, закреплены regression-тестами. Наличие свежего
+меню отдельно не является доказательством приёма реальной кассой.
+
 Публичное обновление меню 2 ноября завершено: runtime8651622, 251 карточка,
 242 доступны при приёмке, 24 NEW скрыты. Code CI main Windows/Linux прошёл,
 публичные ресурсы сверены по SHA-256, private404 и freshness проверены.
