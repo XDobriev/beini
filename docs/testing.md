@@ -2,6 +2,22 @@
 
 ## Тестовая эксплуатация, 2–3 ноября 2026
 
+Последующее поручение на утреннюю публикацию: origin/main7bd5445 (порции)
+объединён с6a04777, runtimea66e485. Общий `python scripts/check.py` после merge
+прошёл: Go tests/vet/build, access/checkout/portions JS, mock4, importer17,
+audit8, JSON/JS251 и seed275. Portions fixture получил явный owner mock-допуск;
+проверки гостевого запрета остались отдельными и не отключались.
+
+После публикации оба HTTPS-origin: health/menu/access200, tester/guest
+canOrder=false, no-store;7 frontend-файлов каждого имени совпали SHA256 с
+релизом,7 служебных путей каждого имени404. Настоящий owner login/logout через
+HTTPS и cookie Secure/HttpOnly/Strict проверены без /api/order.
+Браузер desktop1440×1000/mobile390×844:222 карточки, поиск Рибая1250,
+гостевой звонок вместо отправки, owner delivery/pickup и предупреждение,
+выход в гостевое состояние, стакан260/графин650. overflow нет, JS errors0.
+Проверочная корзина очищена. Production orders остался пустым с прежними
+inode304860/SHA256. Сервис enabled/active, loopback8080, NRestarts0.
+
 Общая `python scripts/check.py` прошла до изменений на origin/main38aad78 и
 после подключения авторизации. Нужен разрешённый loopback; первый ограниченный
 sandbox-запуск не мог соединяться с httptest, повтор прошёл без изменения логики.
