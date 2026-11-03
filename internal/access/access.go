@@ -343,7 +343,7 @@ func (g *Gate) ProtectOrder(next http.Handler) http.Handler {
 		w.Header().Add("Vary", "Cookie")
 		id, _ := g.session(r)
 		if g.config.Mode == "closed" || (g.config.Mode == "tester" && id == "") {
-			failure(w, 403, "ordering_closed", "Онлайн-отправка временно закрыта. Позвоните в ресторан или войдите как тестировщик.")
+			failure(w, 403, "ordering_closed", "Онлайн-отправка временно закрыта. Позвоните в ресторан.")
 			return
 		}
 		if !g.stateRequest(w, r) {

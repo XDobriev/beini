@@ -14,7 +14,6 @@
   const TIMES = ['13:00', '15:00', '17:00', '19:00', '21:00'];
   const GUESTS = ['2', '4', '6', '8', '10+'];
   const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-  const REELS = ['reel_10', 'reel_11', 'reel_12', 'reel_13', 'reel_15', 'reel_17'];
 
   // Проверяем идентификатор, цену и безопасную категорию. Фото может быть заменено заглушкой.
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -448,7 +447,7 @@
             : '<div class="pickup-note">Заберёте по адресу: Осканова, 21</div>'}
         </div>` : ''}
         ${state.access.authenticated && canSubmit() ? `<p class="tester-warning" role="status">${state.access.mock ? 'MOCK: учебный заказ, без отправки в ресторан.' : 'Режим тестировщика. Заказ будет реально отправлен в ресторан'}</p>` : ''}
-        <p class="pickup-note" role="status">${esc(state.menuMessage)}</p>
+        ${!state.menuReady ? `<p class="pickup-note" role="status">${esc(state.menuMessage)}</p>` : ''}
         ${state.priceNotice ? '<p class="form-error" role="alert">Цены в корзине изменились. Проверьте новые цены и сумму.</p><button type="button" class="btn btn-line" data-action="accept-prices">Подтвердить новые цены</button>' : ''}
         ${lines.some(l => !l.dish.available) ? '<p class="form-error">В корзине есть недоступные блюда. Удалите их для оформления.</p>' : ''}
         ${state.orderError ? `<div class="form-error" id="order-error" role="alert">${esc(state.orderError)}</div>` : ''}
@@ -477,7 +476,7 @@
     return state.access.canOrder === true && Date.now() < state.accessExpiresAt;
   }
   function accessNotice(retry) {
-    return `<p class="pickup-note" role="status">${esc(state.accessError || 'Онлайн-отправка временно закрыта. Заказать и узнать актуальные цены можно по телефону.')}${retry ? ' Ключ и состав попытки сохранены. После входа проверьте статус и при необходимости повторите прежний запрос.' : ''}</p>${state.access.loginAvailable !== false && state.access.mode !== 'closed' ? '<a class="btn btn-line" href="/tester">Войти как тестировщик</a>' : ''}${!retry ? '<a class="btn btn-ink" href="tel:+79204827777">Позвонить в ресторан</a>' : ''}`;
+    return `<p class="pickup-note" role="status">${esc(state.accessError || 'Онлайн-отправка временно закрыта. Заказать и узнать актуальные цены можно по телефону.')}${retry ? ' Ключ и состав попытки сохранены. После входа проверьте статус и при необходимости повторите прежний запрос.' : ''}</p>${!retry ? '<a class="btn btn-ink" href="tel:+79204827777">Позвонить в ресторан</a>' : ''}`;
   }
   function renderAccess() {
     const a = state.access;
@@ -488,7 +487,7 @@
       ? 'MOCK: учебный стенд. Искусственные заказы не отправляются в ресторан.'
       : (a.authenticated
         ? (a.mode === 'closed' ? 'Вы вошли как тестировщик. Отправка заказов закрыта сервером для всех.' : 'Режим тестировщика. Заказ будет реально отправлен в ресторан')
-        : 'Сайт работает в тестовом режиме. Меню ещё уточняется. Заказать и узнать актуальные цены можно по телефону.');
+        : 'Сайт находится в разработке. Меню ещё уточняется. Заказать и узнать актуальные цены можно по телефону.');
     const logout = $('tester-logout');
     if (logout) logout.hidden = !a.authenticated;
     const cta = $('menu-cta');
@@ -570,7 +569,8 @@
       state.menuReady = false;
       state.menuMessage = 'Не удалось проверить меню. Доступен просмотр, оформление временно недоступно.';
     }
-    $('menu-freshness').textContent = state.menuMessage;
+    const freshness = $('menu-freshness');
+    if (freshness) freshness.textContent = state.menuMessage;
     renderMenu();
     renderCart();
     menuTimer = setTimeout(refreshMenu, 30000);
@@ -900,7 +900,6 @@
   });
 
   /* ---------- Старт ---------- */
-  $('reels').innerHTML = REELS.map(n => `<a href="https://instagram.com/beini.rest/" aria-label="Открыть Instagram"><img src="assets/images/instagram/${n}.jpg" alt="" loading="lazy"></a>`).join('');
   function restoreAttempt() {
     if (!state.attempt) return;
     if (state.attempt.status === 'confirmed') { state.orderStatus = 'success'; state.orderedTotal = state.attempt.totalSum; }

@@ -64,15 +64,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261103-test-operation">
+  <link rel="stylesheet" href="css/style.css?v=20261103-ui-polish">
 </head>
 <body>
 
   <aside class="operation-banner" id="operation-banner" aria-label="Режим работы сайта">
     <div class="container operation-in">
-      <p id="operation-message" role="status">Сайт работает в тестовом режиме. Меню ещё уточняется. Заказать и узнать актуальные цены можно по телефону.</p>
-      <a class="operation-call" href="tel:+79204827777">Позвонить</a>
-      <button type="button" class="operation-call" data-action="tester-logout" id="tester-logout" hidden>Выйти</button>
+      <p id="operation-message" role="status">Сайт находится в разработке. Меню ещё уточняется. Заказать и узнать актуальные цены можно по телефону.</p>
+      <div class="operation-actions">
+        <a class="operation-call" href="tel:+79204827777">Позвонить</a>
+        <button type="button" class="operation-call" data-action="tester-logout" id="tester-logout" hidden>Выйти</button>
+      </div>
     </div>
   </aside>
 
@@ -110,7 +112,7 @@
         <div class="quick narrow-only">
           <a href="https://wa.me/79204827777">WhatsApp</a>
           <a href="https://yandex.ru/maps/?text=Назрань+Осканова+21">Маршрут</a>
-          <a href="https://instagram.com/beini.rest/">Instagram</a>
+          <a href="https://instagram.com/beini.rest/" target="_blank" rel="noopener noreferrer">Instagram</a>
         </div>
       </div>
       <div class="hero-photo" role="img" aria-label="Интерьер ресторана «Бейни»"></div>
@@ -119,10 +121,11 @@
     <section class="promo">
       <div class="container promo-in">
         <div class="promo-text">
+          <span class="promo-badge">Акция</span>
           <span class="promo-title">День рождения в «Бейни»</span>
           <span class="promo-sub">Скидка 10% на всё меню и бар в день рождения и 7 дней после</span>
         </div>
-        <a href="#booking">Забронировать банкет</a>
+        <a href="#booking" class="promo-link">Забронировать банкет →</a>
       </div>
     </section>
 
@@ -137,8 +140,15 @@
       <div class="menu-grid">
         <nav class="cat-side wide-only" id="cat-side" aria-label="Разделы меню"></nav>
         <div style="min-width:0">
-          <div class="menu-search"><label for="menu-search">Поиск по меню</label><div class="menu-search-row"><input class="input" id="menu-search" type="search" placeholder="Название или состав"><button type="button" class="btn btn-line" id="search-clear">Очистить</button></div><p id="menu-freshness" class="pickup-note" role="status">Проверяем актуальность меню…</p>
-        <div id="search-status" role="status"></div></div><div class="cat-chips narrow-only" id="cat-chips"></div>
+          <div class="menu-search">
+            <label for="menu-search">Поиск по меню</label>
+            <div class="menu-search-row">
+              <input class="input" id="menu-search" type="search" placeholder="Название или состав">
+              <button type="button" class="btn btn-line" id="search-clear">Очистить</button>
+            </div>
+            <div id="search-status" role="status"></div>
+          </div>
+          <div class="cat-chips narrow-only" id="cat-chips"></div>
           <div id="menu-sections"></div>
         </div>
         <aside class="cart-card wide-only" id="cart-card" aria-label="Ваш заказ"></aside>
@@ -181,14 +191,6 @@
         </div>
         <div id="booking-card"></div>
       </div>
-    </section>
-
-    <section class="section insta">
-      <div class="insta-head">
-        <h2 class="h3">Из Instagram</h2>
-        <a href="https://instagram.com/beini.rest/">@beini.rest</a>
-      </div>
-      <div class="reels" id="reels"></div>
     </section>
 
     <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -243,6 +245,6 @@
 
   <script src="js/menu-data.js?v=20261103-test-operation"></script>
   <script src="js/access.js?v=20261102-access"></script>
-  <script src="js/app.js?v=20261103-test-operation"></script>
+  <script src="js/app.js?v=20261103-ui-polish"></script>
 </body>
 </html>
