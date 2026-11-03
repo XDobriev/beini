@@ -1542,7 +1542,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-assorted",
+        "variantName": "Ассорти варенья",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-4e6ef927-48e1-41bb-ab0b-b2ce40321695",
@@ -1553,7 +1557,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-assorted",
+        "variantName": "Ассорти варенья",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-70a2c5cc-172e-4e49-9c51-fe3585577eed",
@@ -1575,7 +1583,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-white-cherry",
+        "variantName": "Варенье из белой черешни",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-7a3f475c-7a93-4083-bcdc-d4f3213bc1f6",
@@ -1586,7 +1598,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-white-cherry",
+        "variantName": "Варенье из белой черешни",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-e8885540-68bf-4ac1-a425-f70075a1553c",
@@ -1608,7 +1624,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-quince",
+        "variantName": "Варенье из айвы",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-9467c7f4-7012-4cb6-9ee3-ce6f366c5e5c",
@@ -1619,7 +1639,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-quince",
+        "variantName": "Варенье из айвы",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-c8a016ed-c8fa-4266-b5bd-6dd894de67e5",
@@ -1641,7 +1665,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-walnut",
+        "variantName": "Варенье из грецкого ореха",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-6186696c-b8b4-4818-b21c-97806dcb1ed8",
@@ -1652,7 +1680,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-walnut",
+        "variantName": "Варенье из грецкого ореха",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-e479bc54-f1bc-4684-ab5c-a0a292a7e85b",
@@ -1663,7 +1695,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-fig",
+        "variantName": "Варенье из инжира",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-c23cb92f-ecc2-46c5-9af2-deab0114868e",
@@ -1674,7 +1710,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-fig",
+        "variantName": "Варенье из инжира",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-135c11de-49ed-43dc-a9a5-a04a89e23a3c",
@@ -1685,7 +1725,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-strawberry",
+        "variantName": "Клубничное варенье",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-4b8a0519-a010-4ca1-b3b5-1c5cda33a288",
@@ -1696,7 +1740,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-strawberry",
+        "variantName": "Клубничное варенье",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-9e6d0936-34d1-429e-9431-2cd96b412698",
@@ -1707,7 +1755,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-coconut",
+        "variantName": "Кокосовое варенье",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-d6495612-aa5a-4e02-ab98-1538806db6fd",
@@ -1718,7 +1770,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-coconut",
+        "variantName": "Кокосовое варенье",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-4e0a942c-6e03-44c6-a234-206b78f7586c",
@@ -1729,7 +1785,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-raspberry",
+        "variantName": "Малиновое варенье",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-8ba1060c-0f09-43b1-ab82-9e43f29dde7b",
@@ -1740,7 +1800,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "jam-raspberry",
+        "variantName": "Малиновое варенье",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-bf1b911c-dbc2-44aa-8533-1509626283c4",
@@ -1751,7 +1815,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "honey",
+        "variantName": "Мёд",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-ed73b4e1-a8ca-4228-8248-d20e00270c55",
@@ -1762,7 +1830,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "honey",
+        "variantName": "Мёд",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-76eb7aae-4eb7-4165-99db-1e5afeae8548",
@@ -1773,7 +1845,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "honey-nuts",
+        "variantName": "Мёд с орешками",
+        "variantLabel": "220 г",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-e7777be8-a32d-4ffc-9de2-5d2fb190e72f",
@@ -1784,7 +1860,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "honey-nuts",
+        "variantName": "Мёд с орешками",
+        "variantLabel": "60 г",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-c6a02b7b-5975-4049-b15b-6e90d615f886",
@@ -1934,7 +2014,11 @@ const MENU_DATA = [
         "weight": "600 мл",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "Графин / На двоих",
-        "isHalal": true
+        "isHalal": true,
+        "variantGroup": "lemonade-mango-passionfruit",
+        "variantName": "Манго-маракуйя лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-drink-04",
@@ -1989,7 +2073,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-watermelon-passionfruit",
+        "variantName": "Арбуз-маракуйя лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-6fc0e123-6533-4e39-9ac9-cd793a8077f2",
@@ -2000,7 +2088,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-watermelon-passionfruit",
+        "variantName": "Арбуз-маракуйя лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-01b8df45-4977-4f3e-b398-34322e84556b",
@@ -2011,7 +2103,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-watermelon-raspberry",
+        "variantName": "Арбузно-малиновый лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-915b6104-069d-4fd9-b216-62646807b750",
@@ -2022,7 +2118,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-watermelon-raspberry",
+        "variantName": "Арбузно-малиновый лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-0341ade1-cda8-448e-a0f2-57c55e5026e1",
@@ -2033,7 +2133,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-watermelon-passionfruit-coconut",
+        "variantName": "Арбузно-маракуйя-кокос лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-d8adaf66-c755-414e-8b6b-7a6c6eea4328",
@@ -2044,7 +2148,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-watermelon-passionfruit-coconut",
+        "variantName": "Арбузно-маракуйя-кокос лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-3dcad0ba-f593-473d-85b6-88491b3f4e0a",
@@ -2077,7 +2185,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-cherry-lime",
+        "variantName": "Вишня-лайм лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-c6b2a430-0e30-420b-8d41-7773b4ae7165",
@@ -2088,7 +2200,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-cherry-lime",
+        "variantName": "Вишня-лайм лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-3015f9ed-be87-49f9-a5b6-ab20cb8429a1",
@@ -2132,7 +2248,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-blue-lagoon",
+        "variantName": "Голубая лагуна лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-373e1486-473f-4b62-b75f-f71b465a49d2",
@@ -2143,7 +2263,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-blue-lagoon",
+        "variantName": "Голубая лагуна лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-9304cc27-6f8d-4ca6-aefc-16d25ca9fc8f",
@@ -2165,7 +2289,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-pomegranate",
+        "variantName": "Гранатовый лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-3e107e11-d2ed-412f-a35e-e0307605a70a",
@@ -2176,7 +2304,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-pomegranate",
+        "variantName": "Гранатовый лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-a9c12e8f-d217-4b62-b0c3-4e2e0afc43bb",
@@ -2198,7 +2330,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-grapefruit-raspberry",
+        "variantName": "Грейпфрут-малина лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-907dd14c-9666-4ee2-8ef1-a6f1c74e9f8c",
@@ -2209,7 +2345,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-grapefruit-raspberry",
+        "variantName": "Грейпфрут-малина лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-d52fe906-39c7-4d53-a198-2843c45fffa5",
@@ -2220,7 +2360,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-grapefruit-passionfruit",
+        "variantName": "Грейпфрут-маракуйя лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-e8288577-5ff1-485c-a4a3-1342638d548c",
@@ -2231,7 +2375,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-grapefruit-passionfruit",
+        "variantName": "Грейпфрут-маракуйя лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-1613589d-a018-479b-8bc0-3c736a56ab43",
@@ -2253,7 +2401,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-melon-lime",
+        "variantName": "Дыня-лайм лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-b008d8dd-fa00-4a10-810a-e7abeb1ae2ea",
@@ -2264,7 +2416,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-melon-lime",
+        "variantName": "Дыня-лайм лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-8eb04d66-7b8a-4803-8cdf-a71f6ada5587",
@@ -2385,7 +2541,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-light-watermelon-raspberry",
+        "variantName": "Легкий арбузно-малиновый лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-1ef8d0a5-dd22-4851-829a-e5cf4d767f5e",
@@ -2396,7 +2556,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-light-watermelon-raspberry",
+        "variantName": "Легкий арбузно-малиновый лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-4f221045-3643-44d6-9f80-2dac033a77de",
@@ -2407,7 +2571,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-berry",
+        "variantName": "Лимонад ягодный",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-b93b6f9e-61dc-4643-84f6-d9d1b794fc17",
@@ -2418,7 +2586,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-berry",
+        "variantName": "Лимонад ягодный",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-0fee7b88-9184-4261-85cc-31e6efc0856a",
@@ -2429,7 +2601,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-raspberry-passionfruit",
+        "variantName": "Малина-Маракуйя лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-26e592bd-92e4-45ea-8508-fcea6d3f9a04",
@@ -2440,7 +2616,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-raspberry-passionfruit",
+        "variantName": "Малина-Маракуйя лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-1787549b-e81c-4124-a933-d447dcaa18c2",
@@ -2451,7 +2631,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-raspberry-coconut",
+        "variantName": "Малина-кокос лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-6f6a951e-86d0-4477-841f-1f1aff12bfe8",
@@ -2462,7 +2646,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-raspberry-coconut",
+        "variantName": "Малина-кокос лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-fac82197-9c2b-4fe6-8f25-4863732f5c24",
@@ -2473,7 +2661,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-mango-passionfruit",
+        "variantName": "Манго-маракуйя лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-6e20e50b-b73f-40a7-b28e-4c2b81b9a83e",
@@ -2506,7 +2698,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-passionfruit-coconut",
+        "variantName": "Маракуйя-кокос лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-3c797018-5db8-4d08-bf80-61f3abbf32bf",
@@ -2517,7 +2713,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-passionfruit-coconut",
+        "variantName": "Маракуйя-кокос лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-5feccb6f-938b-4002-bb06-aba0d2ba2d9a",
@@ -2550,7 +2750,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-mojito",
+        "variantName": "Мохито классический лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-5b80514f-e381-46f3-8d8f-e84bb19fdd5b",
@@ -2561,7 +2765,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-mojito",
+        "variantName": "Мохито классический лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-8b21c0ff-ea0a-47dd-b98f-07839099bb3e",
@@ -2572,7 +2780,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-strawberry-mojito",
+        "variantName": "Мохито клубничный лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-ccb92a01-1252-4a97-a13e-82c0d0b11f13",
@@ -2583,7 +2795,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-strawberry-mojito",
+        "variantName": "Мохито клубничный лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-77cd9ffc-e029-4ec6-b30c-619368b9d885",
@@ -2627,7 +2843,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-refreshing-passionfruit",
+        "variantName": "Освежающая маракуйя лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-479e5c2a-f064-41cd-92bf-80c08423f790",
@@ -2638,7 +2858,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-refreshing-passionfruit",
+        "variantName": "Освежающая маракуйя лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-188e7434-ccf3-4fbb-9e12-4ed4e43e7fc1",
@@ -2726,7 +2950,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-citrus",
+        "variantName": "Цитрусовый лимонад",
+        "variantLabel": "Графин",
+        "variantOrder": 2
       },
       {
         "id": "beini-item-05b45f37-8d1b-4d09-b90f-56905b48b5dc",
@@ -2737,7 +2965,11 @@ const MENU_DATA = [
         "weight": "",
         "image": "assets/images/dishes/placeholder.svg",
         "badge": "",
-        "isHalal": false
+        "isHalal": false,
+        "variantGroup": "lemonade-citrus",
+        "variantName": "Цитрусовый лимонад",
+        "variantLabel": "Стакан",
+        "variantOrder": 1
       },
       {
         "id": "beini-item-3e2fbb72-ba00-4acd-a1f0-a552edcc96d2",

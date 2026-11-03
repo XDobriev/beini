@@ -31,6 +31,16 @@ from import_menu import (
 
 class TestMenuImport(unittest.TestCase):
 
+    def test_export_preserves_explicit_portion_groups(self):
+        item = dict(self.valid_dish, variantGroup='honey', variantName='Мёд',
+                    variantLabel='60 г', variantOrder=1)
+        output = self.root / 'variants.js'
+        export_js_menu_data({'items': [item]}, output)
+        sections = json.loads(output.read_text(encoding='utf-8').split('const MENU_DATA = ', 1)[1].rstrip(';\n'))
+        actual = sections[0]['items'][0]
+        for field in ('variantGroup', 'variantName', 'variantLabel', 'variantOrder'):
+            self.assertEqual(actual.get(field), item[field], field)
+
     def test_legacy_apply_cannot_rewrite_reviewed_v3_seed_or_fetch(self):
         import import_menu
         catalog_path = self.root / 'data' / 'menu_catalog.json'

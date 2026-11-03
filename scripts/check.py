@@ -35,6 +35,7 @@ def main():
             ("Menu consistency", ["node", "scripts/check-menu.cjs"]),
             ("Generated menu", [sys.executable, "-B", "tools/export_menu.py", "--check"]),
             ("Menu UI contract", ["node", "scripts/check-menu-ui.cjs"]),
+            ("Menu portions", ["node", "scripts/check-menu-variants.cjs"]),
             ("Importer tests", [sys.executable, "-B", "-m", "unittest", "discover",
                                 "-s", "tools", "-p", "test_import_menu.py"]),
             ("V3 audit tests", [sys.executable, "-B", "-m", "unittest", "discover",

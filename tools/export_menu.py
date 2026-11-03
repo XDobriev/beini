@@ -18,6 +18,10 @@ def go_catalog(catalog):
             continue
         fields = {'ID': item['id'], 'IikoID': item['iikoId'], 'Name': item['name'],
                   'SourceName': item['sourceName'], 'Price': item['price'], 'Category': item['category']}
+        for source, target in (('variantGroup', 'VariantGroup'), ('variantName', 'VariantName'),
+                               ('variantLabel', 'VariantLabel'), ('variantOrder', 'VariantOrder')):
+            if source in item:
+                fields[target] = item[source]
         lines.append('\t{' + ', '.join(key + ': ' + json.dumps(value, ensure_ascii=False)
                                      for key, value in fields.items()) + '},')
     # Existing synthetic tests use p1. It is never part of the runtime seed.
