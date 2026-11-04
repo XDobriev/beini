@@ -238,6 +238,7 @@ h1, h2, h3, p { margin: 0; }
 .grid5 .opt { padding: 0; }
 .form-cols { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .input { width: 100%; min-width: 0; height: 48px; padding: 0 14px; border: 1px solid var(--input-line); border-radius: 6px; background: #fff; font-size: 15px; outline-color: var(--ink); }
+.book-comment { height: 88px; padding: 12px 14px; font: inherit; font-size: 15px; resize: vertical; }
 .input.bad { border-color: var(--accent); }
 .book-summary { font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: -6px; }
 .form-error { font-size: 14px; color: var(--accent); line-height: 1.4; }

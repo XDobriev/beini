@@ -70,7 +70,7 @@
     badField: '',
     orderedTotal: 0,
     form: { name: '', phone: '', address: '' },
-    book: { zone: 0, day: 0, time: 3, guests: 1, name: '', phone: '', error: '', done: false }
+    book: { zone: 0, day: 0, time: 3, guests: 1, name: '', phone: '', comment: '', error: '', done: false }
   };
 
   const $ = id => document.getElementById(id);
@@ -809,6 +809,10 @@
           <label class="sr-only" for="b-phone">Телефон</label>
           <input class="input${b.error ? ' bad' : ''}" id="b-phone" type="tel" placeholder="Телефон" autocomplete="tel" inputmode="tel" value="${esc(b.phone)}"${b.error ? ' aria-invalid="true" aria-describedby="book-error"' : ''}>
         </div>
+        <div>
+          <label class="book-label" for="b-comment">Пожелания к брони (необязательно)</label>
+          <textarea class="input book-comment" id="b-comment" maxlength="500" placeholder="Например, повод или пожелание по кабинке">${esc(b.comment)}</textarea>
+        </div>
         <button type="button" class="btn btn-accent" style="height:52px" data-action="book">Забронировать</button>
         ${b.error ? `<div class="form-error" id="book-error" role="alert">${esc(b.error)}</div>` : ''}
         <div class="book-summary">${esc(bookingSummary())}</div>
@@ -816,9 +820,10 @@
   }
 
   function readBookForm() {
-    const n = $('b-name'), p = $('b-phone');
+    const n = $('b-name'), p = $('b-phone'), c = $('b-comment');
     if (n) state.book.name = n.value.trim();
     if (p) state.book.phone = p.value.trim();
+    if (c) state.book.comment = c.value.trim();
   }
 
   function submitBooking() {
@@ -831,7 +836,7 @@
       return;
     }
     b.error = '';
-    const msg = `Бронь в «Бейни»\n\nГде: ${ZONES[b.zone]}\nДата: ${isoDate(b.day)} (${dayLabel(b.day).toLowerCase()})\nВремя: ${TIMES[b.time]}\nГостей: ${GUESTS[b.guests]}\nИмя: ${b.name || '—'}\nТелефон: ${b.phone}`;
+    const msg = `Бронь в «Бейни»\n\nГде: ${ZONES[b.zone]}\nДата: ${isoDate(b.day)} (${dayLabel(b.day).toLowerCase()})\nВремя: ${TIMES[b.time]}\nГостей: ${GUESTS[b.guests]}\nИмя: ${b.name || '—'}\nТелефон: ${b.phone}${b.comment ? `\nПожелания: ${b.comment}` : ''}`;
     b.waUrl = `https://wa.me/${WA_PHONE}?text=${encodeURIComponent(msg)}`;
     window.open(b.waUrl, '_blank', 'noopener');
     b.done = true;
