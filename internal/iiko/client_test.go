@@ -113,7 +113,9 @@ func testOrder(dt domain.DeliveryType, addr string) *domain.Order {
 
 func TestCreateDeliveryOrder_Success(t *testing.T) {
 	c, got := newTestClient(t, StatusSuccess, nil)
-	res, err := c.CreateDeliveryOrder(context.Background(), testOrder(domain.DeliveryByCourier, "ул. Осканова, 21, кв. 5"))
+	order := testOrder(domain.DeliveryByCourier, "ул. Осканова, 21, кв. 5")
+	order.Comment = "Тестовый заказ — НЕ ГОТОВИТЬ"
+	res, err := c.CreateDeliveryOrder(context.Background(), order)
 	if err != nil || res.OrderInfo.CreationStatus != StatusSuccess {
 		t.Fatalf("res=%+v err=%v", res, err)
 	}
@@ -129,6 +131,9 @@ func TestCreateDeliveryOrder_Success(t *testing.T) {
 	}
 	if got.Order.Payments[0].Sum != 1180 {
 		t.Errorf("сумма оплаты = %v; want 1180", got.Order.Payments[0].Sum)
+	}
+	if got.Order.Comment != order.Comment || got.Order.Customer.Comment != order.Comment || got.Order.Items[0].Comment != order.Comment {
+		t.Errorf("комментарий не передан в заказ, клиента или позицию: %+v", got.Order)
 	}
 }
 

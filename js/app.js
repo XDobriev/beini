@@ -69,7 +69,7 @@
     orderError: '',
     badField: '',
     orderedTotal: 0,
-    form: { name: '', phone: '', address: '' },
+    form: { name: '', phone: '', address: '', comment: '' },
     book: { zone: 0, day: 0, time: 3, guests: 1, name: '', phone: '', comment: '', error: '', done: false }
   };
 
@@ -445,6 +445,8 @@
             ? `<label class="sr-only" for="f-address">Адрес в Назрани: улица, дом, квартира</label>
                <input class="input${state.badField === 'f-address' ? ' bad' : ''}" id="f-address" placeholder="Адрес в Назрани: улица, дом, квартира" autocomplete="street-address" value="${esc(f.address)}"${fieldErr('f-address')}>`
             : '<div class="pickup-note">Заберёте по адресу: ул. С. С. Осканова</div>'}
+          <label class="sr-only" for="f-comment">Комментарий к заказу (необязательно)</label>
+          <input class="input${state.badField === 'f-comment' ? ' bad' : ''}" id="f-comment" placeholder="Комментарий к заказу (необязательно)" maxlength="500" value="${esc(f.comment)}"${fieldErr('f-comment')}>
         </div>` : ''}
         ${state.access.authenticated && canSubmit() ? `<p class="tester-warning" role="status">${state.access.mock ? 'MOCK: учебный заказ, без отправки в ресторан.' : 'Режим тестировщика. Заказ будет реально отправлен в ресторан'}</p>` : ''}
         ${!state.menuReady ? `<p class="pickup-note" role="status">${esc(state.menuMessage)}</p>` : ''}
@@ -521,16 +523,18 @@
     } catch (e) { toast('Выход не подтверждён. Обновите страницу и повторите.'); }
   }
   function readForm() {
-    const n = $('f-name'), p = $('f-phone'), a = $('f-address');
+    const n = $('f-name'), p = $('f-phone'), a = $('f-address'), c = $('f-comment');
     if (n) state.form.name = n.value.trim();
     if (p) state.form.phone = p.value.trim();
     if (a) state.form.address = a.value.trim();
+    if (c) state.form.comment = c.value.trim();
   }
 
   function validateOrder() {
     const digits = state.form.phone.replace(/\D/g, '');
     if (digits.length < 10) return 'Укажите телефон, чтобы мы могли подтвердить заказ.';
     if (state.orderType === 'delivery' && !state.form.address) return 'Укажите адрес доставки: улица, дом, квартира.';
+    if (Array.from(state.form.comment || '').length > 500) return 'Комментарий к заказу не должен превышать 500 символов.';
     return '';
   }
 
@@ -721,7 +725,8 @@
     if (problem) {
       state.orderError = problem;
       state.orderStatus = 'idle';
-      state.badField = state.form.phone.replace(/\D/g, '').length < 10 ? 'f-phone' : 'f-address';
+      state.badField = state.form.phone.replace(/\D/g, '').length < 10 ? 'f-phone'
+        : state.orderType === 'delivery' && !state.form.address ? 'f-address' : 'f-comment';
       renderSheet();
       const el = $(state.badField); if (el) el.focus();
       return;
@@ -731,7 +736,7 @@
     if (!lines.length) return;
     const payload = {
       customerName: state.form.name || 'Гость', phone: state.form.phone, deliveryType: state.orderType,
-      address: state.orderType === 'delivery' ? state.form.address : '', comment: 'Заказ с сайта',
+      address: state.orderType === 'delivery' ? state.form.address : '', comment: state.form.comment || 'Заказ с сайта',
       items: lines.map(l => ({ productId: l.dish.id, amount: l.qty })), expectedPrices: lines.map(l => l.dish.price)
     };
     state.attempt = { body: JSON.stringify(payload), key: crypto.randomUUID(), status: 'unknown', mock: state.access.mock === true };
@@ -754,6 +759,7 @@
     if (state.orderType === 'delivery' && state.form.address) msg += `Адрес: ${state.form.address}\n`;
     if (state.form.name) msg += `Имя: ${state.form.name}\n`;
     if (state.form.phone) msg += `Телефон: ${state.form.phone}\n`;
+    if (state.form.comment) msg += `Комментарий: ${state.form.comment}\n`;
     msg += '\nПожалуйста, подтвердите наличие блюд, итоговую стоимость и возможность доставки. Заявка не считается принятой до подтверждения ресторана.';
     window.open(`https://wa.me/${WA_PHONE}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
   }
@@ -854,6 +860,7 @@
   }
 
   /* ---------- События ---------- */
+  document.addEventListener('input', e => { if (e.target.id === 'f-comment') state.form.comment = e.target.value; });
   $('menu-search').addEventListener('input', e => { state.query = e.target.value; renderMenu(); });
   $('search-clear').addEventListener('click', () => { state.query = ''; $('menu-search').value = ''; renderMenu(); $('menu-search').focus(); });
   document.addEventListener('click', e => {

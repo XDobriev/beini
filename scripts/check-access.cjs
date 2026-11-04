@@ -7,7 +7,7 @@ const marker = '  /* ---------- События ---------- */';
 let source = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
 source = source.replace(marker, `
   renderMenu = () => {}; renderCart = () => {};
-  window.test = { state, placeOrder, sendAttempt, refreshAccess, canSubmit, renderSheet }; return;
+  window.test = { state, placeOrder, sendAttempt, refreshAccess, canSubmit, renderSheet, orderToWhatsApp }; return;
 ${marker}`);
 let nextKey = 0;
 let locked = false;
@@ -18,9 +18,10 @@ const locks = { request: async (_name, _options, work) => {
 } };
 function boot(access, post, store = new Map(), read = async () => access) {
   const nodes = new Map();
+  const opened = [];
   const context = {
-    window: { BEINIAccess: { read, post } }, navigator: { locks },
-    document: { getElementById(id) { if (['f-name', 'f-phone', 'f-address'].includes(id) && !nodes.has(id)) return null; if (!nodes.has(id)) nodes.set(id, { hidden: false, innerHTML: '', textContent: '' }); return nodes.get(id); }, activeElement: null },
+    window: { BEINIAccess: { read, post }, open: url => opened.push(url) }, navigator: { locks },
+    document: { getElementById(id) { if (['f-name', 'f-phone', 'f-address', 'f-comment'].includes(id) && !nodes.has(id)) return null; if (!nodes.has(id)) nodes.set(id, { hidden: false, innerHTML: '', textContent: '' }); return nodes.get(id); }, activeElement: null },
     crypto: { randomUUID: () => 'brand-new-key-' + (++nextKey) },
     fetch: async () => { throw new Error('guest must never create'); },
     AbortSignal, setTimeout: () => 0, clearTimeout() {},
@@ -30,7 +31,7 @@ function boot(access, post, store = new Map(), read = async () => access) {
   vm.runInNewContext(source, context);
   const app = context.window.test;
   Object.assign(app.state, { menuReady: true, menuExpiresAt: Date.now() + 60000, cart: { one: 1 }, form: { phone: '89990000000', address: 'Ленина, 1' } });
-  return { app, store, nodes };
+  return { app, store, nodes, opened };
 }
 (async () => {
   const guest = { mode: 'tester', authenticated: false, canOrder: false, mock: false };
@@ -77,5 +78,45 @@ function boot(access, post, store = new Map(), read = async () => access) {
   blockedStorage.set = () => { throw new Error('quota'); };
   await diskFull.app.sendAttempt();
   assert.equal(diskFull.app.state.attempt?.key, saved.key, 'storage failure lost existing key');
+  const sentComments = [];
+  const commented = boot(access, async (_url, body, headers) => {
+    sentComments.push({ body, key: headers['Idempotency-Key'] });
+    return { status: 200, json: async () => ({ status: 'pending' }) };
+  });
+  commented.nodes.set('f-comment', { value: '  Без сахара <&> "пожалуйста"  ' });
+  await commented.app.refreshAccess();
+  commented.app.renderSheet();
+  assert.match(commented.nodes.get('sheet-overlay').innerHTML, /Без сахара &lt;&amp;&gt; &quot;пожалуйста&quot;/, 'comment must be escaped when the form renders');
+  await commented.app.placeOrder();
+  assert.equal(JSON.parse(sentComments[0].body).comment, 'Без сахара <&> "пожалуйста"', 'checkout dropped the entered comment');
+  commented.nodes.get('f-comment').value = 'Изменённый текст';
+  commented.app.state.orderStatus = 'unknown';
+  await commented.app.sendAttempt();
+  assert.deepEqual(sentComments[1], sentComments[0], 'retry changed the saved comment or key');
+  const wa = boot(access);
+  wa.nodes.set('f-comment', { value: 'Без сахара & сиропа' });
+  wa.app.orderToWhatsApp();
+  assert.match(new URL(wa.opened[0]).searchParams.get('text'), /Комментарий: Без сахара & сиропа/);
+  let blankPayload;
+  const blank = boot(access, async (_url, body) => {
+    blankPayload = JSON.parse(body);
+    return { status: 200, json: async () => ({ status: 'pending' }) };
+  });
+  blank.nodes.set('f-comment', { value: '   ' });
+  await blank.app.placeOrder();
+  assert.equal(blankPayload.comment, 'Заказ с сайта', 'blank comment changed existing checkout behavior');
+  let limitPayload;
+  const atLimit = boot(access, async (_url, body) => {
+    limitPayload = JSON.parse(body);
+    return { status: 200, json: async () => ({ status: 'pending' }) };
+  });
+  atLimit.nodes.set('f-comment', { value: 'я'.repeat(500) });
+  await atLimit.app.placeOrder();
+  assert.equal(limitPayload.comment.length, 500, '500-character comment was rejected');
+  const longComment = boot(access, () => { throw new Error('overlong comment submitted'); });
+  longComment.nodes.set('f-comment', { value: 'я'.repeat(501), focus() {} });
+  await longComment.app.placeOrder();
+  assert.equal(longComment.app.state.badField, 'f-comment');
+  assert.match(longComment.app.state.orderError, /500/);
   console.log('Access gate, guest call, expiry and unchanged retry passed');
 })().catch(e => { console.error(e); process.exitCode = 1; });
