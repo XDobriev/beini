@@ -308,7 +308,7 @@
     const count = cartCount();
     const total = cartTotal();
     const typeName = state.orderType === 'delivery' ? 'Доставка' : 'Самовывоз';
-    const typeNote = state.orderType === 'delivery' ? '~45 мин' : 'Осканова, 21';
+    const typeNote = state.orderType === 'delivery' ? '~45 мин' : 'ул. С. С. Осканова';
 
     // Кнопка в шапке
     $('header-cart').innerHTML = 'Корзина' + (count ? `<span class="cart-count">${count}</span>` : '');
@@ -444,7 +444,7 @@
           ${state.orderType === 'delivery'
             ? `<label class="sr-only" for="f-address">Адрес в Назрани: улица, дом, квартира</label>
                <input class="input${state.badField === 'f-address' ? ' bad' : ''}" id="f-address" placeholder="Адрес в Назрани: улица, дом, квартира" autocomplete="street-address" value="${esc(f.address)}"${fieldErr('f-address')}>`
-            : '<div class="pickup-note">Заберёте по адресу: Осканова, 21</div>'}
+            : '<div class="pickup-note">Заберёте по адресу: ул. С. С. Осканова</div>'}
         </div>` : ''}
         ${state.access.authenticated && canSubmit() ? `<p class="tester-warning" role="status">${state.access.mock ? 'MOCK: учебный заказ, без отправки в ресторан.' : 'Режим тестировщика. Заказ будет реально отправлен в ресторан'}</p>` : ''}
         ${!state.menuReady ? `<p class="pickup-note" role="status">${esc(state.menuMessage)}</p>` : ''}
