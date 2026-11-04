@@ -116,6 +116,21 @@ offline `TestApplicationMenuOrderRestart`. Внешний кассовый те�
 
 ## Обновление и откат
 
+Для SSH/SCP с Windows используйте `scripts/vps-ssh.ps1`. Скрипт сначала
+проверяет прямой SSH, затем пробует существующий SOCKS5 `127.0.0.1:10808`;
+через SOCKS передаётся hostname `beinirest.ru`, чтобы сработал доменный маршрут
+VPN. `HostKeyAlias=72.56.232.231` сохраняет проверку прежнего host key.
+Примеры:
+
+```powershell
+pwsh -File scripts/vps-ssh.ps1 ssh root@beinirest.ru "readlink -f /opt/beini/current"
+pwsh -File scripts/vps-ssh.ps1 scp RELEASE.tar.gz root@beinirest.ru:/var/tmp/
+```
+
+Если прямой маршрут работает, скрипт использует его; если нет — переключается на
+SOCKS. VPN и системные настройки SSH не меняются. Дальнейшие шаги установки и
+проверки остаются по этому разделу.
+
 Перед обновлением сохранить закрытый manifest текущего релиза и параметры
 запуска. Не удалять предыдущий совместимый release. Затем:
 
