@@ -9,15 +9,19 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $target = 'root@beinirest.ru'
-$sshOptions = @(
+$baseOptions = @(
   '-o', 'HostKeyAlias=72.56.232.231',
   '-o', 'BatchMode=yes',
-  '-o', 'ConnectTimeout=8',
   '-o', 'ConnectionAttempts=1'
 )
+$probeOptions = $baseOptions + @('-o', 'ConnectTimeout=8')
+$routeOptions = $baseOptions + @(
+  '-o', 'ConnectTimeout=20',
+  '-o', 'ServerAliveInterval=5',
+  '-o', 'ServerAliveCountMax=2'
+)
 
-& ssh @sshOptions $target 'true' 2>$null
-$routeOptions = $sshOptions
+& ssh @probeOptions $target 'true' 2>$null
 if ($LASTEXITCODE -ne 0) {
   $previousPythonPath = $env:PYTHONPATH
   $env:PYTHONPATH = if ($previousPythonPath) { "$PSScriptRoot;$previousPythonPath" } else { $PSScriptRoot }
