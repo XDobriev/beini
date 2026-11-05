@@ -8,8 +8,8 @@
   const CART_PRICES_KEY = 'beini_cart_prices';
   const CAT_ORDER = ['eastern', 'grill', 'hot', 'soups', 'salads', 'sushi', 'pizza', 'breakfasts', 'sides', 'desserts', 'drinks'];
   const IMAGE_PLACEHOLDER = 'assets/images/dishes/placeholder.svg';
-  const CAT_NAMES = { breakfasts: 'Завтраки', hot: 'Горячие блюда', sides: 'Гарниры и соусы', eastern: 'Национальная и восточная', grill: 'Мангал и стейки', soups: 'Супы', salads: 'Салаты и закуски', sushi: 'Роллы', pizza: 'Пицца и выпечка', desserts: 'Десерты', drinks: 'Кофе и бар' };
-  const CAT_SHORT = { breakfasts: 'Завтраки', hot: 'Горячее', sides: 'Гарниры', eastern: 'Национальная', grill: 'Мангал', soups: 'Супы', salads: 'Салаты', sushi: 'Роллы', pizza: 'Пицца', desserts: 'Десерты', drinks: 'Напитки' };
+  const CAT_NAMES = { breakfasts: 'Завтраки', hot: 'Горячие блюда и рыба', sides: 'Гарниры и соусы', eastern: 'Национальная и восточная кухня', grill: 'Мангал и стейки', soups: 'Супы', salads: 'Салаты и закуски', sushi: 'Суши и роллы', pizza: 'Пицца и выпечка', desserts: 'Десерты', drinks: 'Кофе и напитки' };
+  const CAT_SHORT = { breakfasts: 'Завтраки', hot: 'Горячее и рыба', sides: 'Гарниры', eastern: 'Восточная', grill: 'Мангал и стейки', soups: 'Супы', salads: 'Салаты', sushi: 'Суши и роллы', pizza: 'Пицца и выпечка', desserts: 'Десерты', drinks: 'Напитки' };
   const ZONES = ['Кабинка до 10 гостей', 'Основной зал', 'Банкет'];
   const TIMES = ['13:00', '15:00', '17:00', '19:00', '21:00'];
   const GUESTS = ['2', '4', '6', '8', '10+'];
@@ -217,31 +217,83 @@
       </button>`;
     }).join('')}</div>`;
   }
+  function hasDishImage(dish) {
+    if (!dish || typeof dish.image !== 'string') return false;
+    const src = dish.image.trim();
+    return Boolean(src && src !== IMAGE_PLACEHOLDER && !src.endsWith('/placeholder.svg'));
+  }
+
+  function renderDishCard(i) {
+    const showImg = hasDishImage(i);
+    const cls = ['dish'];
+    if (!showImg) cls.push('dish-no-img');
+    if (i.variants) cls.push('dish-with-variants');
+    return `
+          <article class="${cls.join(' ')}">
+            ${showImg ? `<img src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy" width="112" height="112" onerror="this.closest('.dish').classList.add('dish-no-img');this.remove();">` : ''}
+            <div class="dish-body">
+              <div class="dish-main">
+                <div class="dish-info">
+                  ${i.badge ? `<div class="dish-badge">${esc(i.badge)}</div>` : ''}
+                  <div class="dish-name">${esc(i.name)}</div>
+                  ${i.description ? `<div class="dish-desc">${esc(i.description)}</div>` : ''}
+                </div>
+                ${!i.variants ? `
+                <div class="dish-foot">
+                  <span class="price">${fmt(i.price)} ₽ ${i.weight ? `<span class="weight">· ${esc(i.weight)}</span>` : ''}</span>
+                  <span class="dish-ctl" data-id="${i.id}">${dishControl(i.id)}</span>
+                </div>` : ''}
+              </div>
+              ${variantControls(i)}
+              ${i.variants ? `
+              <div class="dish-foot">
+                <span class="price">${fmt(i.price)} ₽ ${i.weight ? `<span class="weight">· ${esc(i.weight)}</span>` : ''}</span>
+                <span class="dish-ctl" data-id="${i.id}">${dishControl(i.id)}</span>
+              </div>` : ''}
+            </div>
+          </article>`;
+  }
+
+  function renderPager() {
+    if (menu.length <= 1) return '';
+    const idx = menu.findIndex(c => c.category === state.active);
+    const next = menu[(idx >= 0 ? idx + 1 : 1) % menu.length];
+    const nextTitle = CAT_NAMES[next.category] || next.categoryName;
+    return `
+      <div class="menu-pager">
+        <button type="button" class="btn btn-line menu-next-btn" data-action="jump" data-cat="${esc(next.category)}" data-scroll="top">
+          <span>Следующий раздел: ${esc(nextTitle)}</span>
+          <span aria-hidden="true">→</span>
+        </button>
+        <button type="button" class="menu-top-btn" data-action="menu-top">↑ К выбору раздела</button>
+      </div>`;
+  }
+
   function renderMenu() {
     const focused = document.activeElement;
     const focusedVariant = focused && focused.dataset && focused.dataset.action === 'variant' ? focused.dataset.id : null;
+    if (menu.length && !menu.some(c => c.category === state.active)) {
+      state.active = menu[0].category;
+    }
     const q = normalizeSearch(state.query);
     const cards = menu.map(c => ({ ...c, items: menuCards(c.items) }));
-    const visible = q ? cards.map(c => ({ ...c, items: c.items.filter(i => normalizeSearch([i.name, ...(i.variants || [i]).map(v => [v.name, v.description, v.variantLabel].join(' '))].join(' ')).includes(q)) })).filter(c => c.items.length) : cards;
+    const matched = q
+      ? cards.map(c => ({
+          ...c,
+          items: c.items.filter(i => normalizeSearch([i.name, ...(i.variants || [i]).map(v => [v.name, v.description, v.variantLabel].join(' '))].join(' ')).includes(q))
+        })).filter(c => c.items.length)
+      : cards.filter(c => c.category === state.active);
+    const visible = (!q && !matched.length && cards.length) ? [cards[0]] : matched;
     const count = visible.reduce((n, c) => n + c.items.length, 0);
     $('search-status').textContent = q ? (count ? 'Найдено блюд: ' + count : 'Ничего не найдено. Попробуйте другой запрос или очистите поиск.') : '';
     $('menu-sections').innerHTML = visible.map(c => `
       <div class="menu-cat" id="cat-${c.category}">
-        <h3 class="h3">${esc(CAT_NAMES[c.category] || c.categoryName)}</h3>
-        ${c.items.map(i => `
-          <article class="dish${i.variants ? ' dish-with-variants' : ''}">
-            <img src="${esc(i.image || IMAGE_PLACEHOLDER)}" alt="${esc(i.name)}" loading="lazy" width="112" height="112" onerror="this.onerror=null;this.src='assets/images/dishes/placeholder.svg';">
-            <div class="dish-body">
-              ${i.badge ? `<div class="dish-badge">${esc(i.badge)}</div>` : ''}
-              <div class="dish-name">${esc(i.name)}</div>
-              <div class="dish-desc">${esc(i.description)}</div>
-              ${variantControls(i)}
-              <div class="dish-foot">
-                <span class="price">${fmt(i.price)} ₽ ${i.weight ? `<span class="weight">· ${esc(i.weight)}</span>` : ''}</span>
-                <span class="dish-ctl" data-id="${i.id}">${dishControl(i.id)}</span>
-              </div>
-            </div>
-          </article>`).join('')}
+        <div class="menu-cat-head">
+          <h3 class="h3">${esc(CAT_NAMES[c.category] || c.categoryName)}</h3>
+          <span class="menu-cat-count">${c.items.length}</span>
+        </div>
+        ${c.items.map(renderDishCard).join('')}
+        ${!q ? renderPager() : ''}
       </div>`).join('');
     renderCategories();
     if (focusedVariant) {
@@ -251,41 +303,38 @@
   }
 
   function renderCategories() {
-    $('cat-side').innerHTML = menu.map(c =>
-      `<button type="button" data-action="jump" data-cat="${c.category}"${c.category === state.active ? ' class="on"' : ''}>${esc(CAT_NAMES[c.category] || c.categoryName)}</button>`).join('');
-    $('cat-chips').innerHTML = menu.map(c =>
-      `<button type="button" class="chip${c.category === state.active ? ' on' : ''}" data-action="jump" data-cat="${c.category}">${esc(CAT_SHORT[c.category] || c.categoryName)}</button>`).join('');
+    const hasQuery = Boolean(normalizeSearch(state.query));
+    $('cat-side').innerHTML = menu.map(c => {
+      const active = !hasQuery && c.category === state.active;
+      return `<button type="button" data-action="jump" data-cat="${c.category}" aria-pressed="${active}"${active ? ' class="on"' : ''}>${esc(CAT_NAMES[c.category] || c.categoryName)}</button>`;
+    }).join('');
+    $('cat-chips').innerHTML = menu.map(c => {
+      const active = !hasQuery && c.category === state.active;
+      return `<button type="button" class="chip${active ? ' on' : ''}" data-action="jump" data-cat="${c.category}" aria-pressed="${active}">${esc(CAT_SHORT[c.category] || c.categoryName)}</button>`;
+    }).join('');
   }
 
-  function jump(cat) {
-    if (state.query) { state.query = ''; $('menu-search').value = ''; renderMenu(); }
-    const el = $('cat-' + cat);
-    if (!el) return;
-    const offset = isWide() ? 90 : 120;
-    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
+  function scrollMenuIntoView(forceTop) {
+    const target = $('menu-sections');
+    if (!target) return;
+    const offset = isWide() ? 90 : 124;
+    const rect = target.getBoundingClientRect();
+    if (forceTop || rect.top < offset - 16 || rect.top > window.innerHeight * 0.7) {
+      window.scrollTo({ top: Math.max(0, rect.top + window.scrollY - offset), behavior: 'smooth' });
+    }
+  }
+
+  function jump(cat, forceTop) {
+    if (!cat) return;
     state.active = cat;
-    renderCategories();
-  }
-
-  let spyTicking = false;
-  function onScroll() {
-    if (spyTicking) return;
-    spyTicking = true;
-    requestAnimationFrame(() => {
-      spyTicking = false;
-      if (!menu.length || state.query) return;
-      let cur = menu[0].category;
-      menu.forEach(c => {
-        const el = $('cat-' + c.category);
-        if (el && el.getBoundingClientRect().top < 160) cur = c.category;
-      });
-      if (cur !== state.active) {
-        state.active = cur;
-        renderCategories();
-        const chip = document.querySelector('#cat-chips .chip.on');
-        if (chip && chip.scrollIntoView) chip.scrollIntoView({ inline: 'center', block: 'nearest' });
-      }
-    });
+    if (state.query) {
+      state.query = '';
+      $('menu-search').value = '';
+    }
+    renderMenu();
+    const chip = document.querySelector('#cat-chips .chip.on');
+    if (chip && chip.scrollIntoView) chip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    scrollMenuIntoView(forceTop);
   }
 
   /* ---------- Тип заказа ---------- */
@@ -426,12 +475,15 @@
     } else {
       const sending = state.orderStatus === 'sending';
       body = `
-        ${lines.map(l => `
-          <div class="sheet-row">
-            <img src="${esc(l.dish.image || IMAGE_PLACEHOLDER)}" alt="">
+        ${lines.map(l => {
+          const showImg = hasDishImage(l.dish);
+          return `
+          <div class="sheet-row${showImg ? '' : ' sheet-row-no-img'}">
+            ${showImg ? `<img src="${esc(l.dish.image)}" alt="" onerror="this.closest('.sheet-row').classList.add('sheet-row-no-img');this.remove();">` : ''}
             <div><div class="cart-row-name">${esc(l.dish.name)}</div><div class="cart-row-sum">${fmt(l.qty * l.dish.price)} ₽</div></div>
             ${miniStep(l)}
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
         <div class="seg-box">
           <button type="button" data-action="type" data-type="delivery" class="${state.orderType === 'delivery' ? 'on' : ''}">Доставка</button>
           <button type="button" data-action="type" data-type="pickup" class="${state.orderType === 'pickup' ? 'on' : ''}">Самовывоз</button>
@@ -874,7 +926,12 @@
       case 'inc': changeQty(el.dataset.id, 1); break;
       case 'dec': changeQty(el.dataset.id, -1); break;
       case 'variant': selectVariant(el.dataset.group, el.dataset.id); break;
-      case 'jump': jump(el.dataset.cat); break;
+      case 'jump': jump(el.dataset.cat, el.dataset.scroll === 'top'); break;
+      case 'menu-top': {
+        const menuEl = $('menu');
+        if (menuEl) window.scrollTo({ top: Math.max(0, menuEl.getBoundingClientRect().top + window.scrollY - 72), behavior: 'smooth' });
+        break;
+      }
       case 'type': readForm(); setType(el.dataset.type); break;
       case 'open-sheet': openSheet(); break;
       case 'close-sheet': closeSheet(); break;
@@ -893,7 +950,6 @@
     }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.sheetOpen) closeSheet(); });
-  window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('focus', refreshAccess);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAccess(); });
   // Корзина обновилась в другой вкладке (например, вернулись из Instagram)

@@ -21,14 +21,14 @@ $routeOptions = $baseOptions + @(
   '-o', 'ServerAliveCountMax=2'
 )
 
-& ssh @probeOptions $target 'true' 2>$null
+try { & ssh @probeOptions $target 'true' 2>$null } catch {}
 if ($LASTEXITCODE -ne 0) {
   $previousPythonPath = $env:PYTHONPATH
   $env:PYTHONPATH = if ($previousPythonPath) { "$PSScriptRoot;$previousPythonPath" } else { $PSScriptRoot }
   $routeOptions += @('-o', 'ProxyCommand=python -m vps_socks5 %h %p')
   & ssh @routeOptions $target 'true' 2>$null
   if ($LASTEXITCODE -ne 0) {
-    Write-Error 'SSH недоступен напрямую и через SOCKS 127.0.0.1:10808. Проверьте сеть, VPN и VPS.'
+    Write-Error 'SSH unavailable directly and via SOCKS 127.0.0.1:10808. Check network, VPN and VPS.'
     exit 1
   }
   Write-Host 'SSH route: domain-based SOCKS 127.0.0.1:10808'
