@@ -48,13 +48,24 @@ Frontend: HTML, CSS и Vanilla JavaScript; backend: Go 1.24.
 ## Быстрый старт
 
 Нужны Go 1.24, Python 3.10+ и Node.js 22+ для проверок.
-Docker с Compose необязателен. npm-зависимостей и frontend-сборки нет.
+Docker с Compose необязателен. Frontend-сборки нет; npm используется только
+для необязательных browser smoke-тестов.
 
 ```sh
 git clone https://github.com/XDobriev/beini.git
 cd beini
 python scripts/check.py
 ```
+
+Для browser smoke-тестов установите зависимости и Chromium один раз:
+
+```sh
+npm ci
+npm run test:e2e:install
+npm run test:e2e
+```
+
+Тесты сами запускают offline mock на `127.0.0.1:8766` в режиме `closed`.
 
 Автопроверки не используют ключи ресторана и не отправляют заказы в iiko.
 Go-тесты используют loopback mock-серверы.

@@ -25,8 +25,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Offline checks
         run: python scripts/check.py
+      - name: Install browser test dependencies
+        run: npm ci
+      - name: Install Playwright Chromium (Linux)
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium (Windows)
+        if: runner.os == 'Windows'
+        run: npx playwright install chromium
+      - name: Browser smoke tests
+        run: npm run test:e2e

@@ -44,6 +44,9 @@ council-transcript-*.md
 __pycache__/
 *.pyc
 .playwright-mcp/
+node_modules/
+playwright-report/
+test-results/
 .design-review/
 .impeccable/
 .agents/*
